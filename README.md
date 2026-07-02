@@ -1,4 +1,4 @@
-# Chat Bubble
+# Aliaddo Chat Widget
 
 > Widget de chat con IA, ligero y embebible, integrado con workflows de **n8n**. Despliega un asistente conversacional en cualquier sitio web con una sola etiqueta `<script>`.
 
