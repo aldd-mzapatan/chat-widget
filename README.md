@@ -15,10 +15,13 @@ Pega esto antes del cierre de `</body>`:
 ```html
 <script>
   window.ChatBubbleConfig = {
-    webhook: { url: "https://tu-n8n.com/webhook/chat-bubble" }
+    webhook: { url: "https://tu-n8n.com/webhook/chat-bubble" },
   };
 </script>
-<script type="module" src="https://cdn.jsdelivr.net/gh/usuario/chat-bubble@1.0.0/dist/chat-bubble.js"></script>
+<script
+  type="module"
+  src="https://cdn.jsdelivr.net/gh/usuario/chat-bubble@1.0.0/dist/chat-bubble.js"
+></script>
 ```
 
 El widget se inicializa automáticamente en la esquina inferior derecha. Para el flujo completo de despliegue (n8n + CDN), ver [EMBED.md](./EMBED.md).
@@ -59,7 +62,7 @@ dist/
 ```javascript
 window.ChatBubbleConfig = {
   webhook: {
-    url: "https://tu-n8n.com/webhook/chat-bubble" // requerido
+    url: "https://tu-n8n.com/webhook/chat-bubble", // requerido
   },
   bot: {
     name: "Asistente",
@@ -67,48 +70,48 @@ window.ChatBubbleConfig = {
     avatar: "https://tu-sitio.com/avatar.png", // o null → ícono SVG
     welcomeMessage: "¡Hola! ¿En qué puedo ayudarte?",
     offlineMessage: "En este momento no estoy disponible.",
-    typingText: "Escribiendo..."
+    typingText: "Escribiendo...",
   },
   style: {
     primaryColor: "#6366f1",
     textColor: "#ffffff",
-    position: "right",        // 'right' | 'left'
+    position: "right", // 'right' | 'left'
     borderRadius: "12px",
     fontFamily: "inherit",
-    theme: "auto"              // 'auto' | 'light' | 'dark'
+    theme: "auto", // 'auto' | 'light' | 'dark'
   },
   behavior: {
     openOnLoad: false,
     showTimestamps: true,
     enableSoundNotification: false,
     maxMessageLength: 1000,
-    requestTimeout: 60000
-  }
+    requestTimeout: 60000,
+  },
 };
 ```
 
 <details>
 <summary><strong>Tabla completa de opciones</strong></summary>
 
-| Propiedad | Tipo | Default | Descripción |
-|---|---|---|---|
-| `webhook.url` | `string` | — | **Requerido.** Endpoint POST del webhook en n8n |
-| `bot.name` | `string` | `'Asistente'` | Nombre en el encabezado del chat |
-| `bot.subtitle` | `string` | `'Soporte IA'` | Subtítulo bajo el nombre |
-| `bot.avatar` | `string\|null` | `null` | URL de imagen (`null` = ícono SVG) |
-| `bot.welcomeMessage` | `string` | `'¡Hola!'` | Mensaje de bienvenida |
-| `bot.offlineMessage` | `string` | `'Sin conexión'` | Mensaje al fallar la conexión |
-| `bot.typingText` | `string` | `'Escribiendo...'` | Aria-label del indicador de escritura |
-| `style.primaryColor` | `string` | `'#6366f1'` | Color de marca (hex) |
-| `style.textColor` | `string` | `'#ffffff'` | Color de texto sobre `primaryColor` |
-| `style.position` | `'right'\|'left'` | `'right'` | Alineación horizontal |
-| `style.borderRadius` | `string` | `'12px'` | Radio de bordes |
-| `style.fontFamily` | `string` | `'inherit'` | Fuente CSS |
-| `style.theme` | `'auto'\|'light'\|'dark'` | `'auto'` | Modo de color |
-| `behavior.openOnLoad` | `boolean` | `false` | Abrir el chat al cargar la página |
-| `behavior.showTimestamps` | `boolean` | `true` | Mostrar hora en cada mensaje |
-| `behavior.maxMessageLength` | `number` | `1000` | Máximo de caracteres por mensaje |
-| `behavior.requestTimeout` | `number` | `60000` | Timeout del webhook (ms) |
+| Propiedad                   | Tipo                      | Default            | Descripción                                     |
+| --------------------------- | ------------------------- | ------------------ | ----------------------------------------------- |
+| `webhook.url`               | `string`                  | —                  | **Requerido.** Endpoint POST del webhook en n8n |
+| `bot.name`                  | `string`                  | `'Asistente'`      | Nombre en el encabezado del chat                |
+| `bot.subtitle`              | `string`                  | `'Soporte IA'`     | Subtítulo bajo el nombre                        |
+| `bot.avatar`                | `string\|null`            | `null`             | URL de imagen (`null` = ícono SVG)              |
+| `bot.welcomeMessage`        | `string`                  | `'¡Hola!'`         | Mensaje de bienvenida                           |
+| `bot.offlineMessage`        | `string`                  | `'Sin conexión'`   | Mensaje al fallar la conexión                   |
+| `bot.typingText`            | `string`                  | `'Escribiendo...'` | Aria-label del indicador de escritura           |
+| `style.primaryColor`        | `string`                  | `'#6366f1'`        | Color de marca (hex)                            |
+| `style.textColor`           | `string`                  | `'#ffffff'`        | Color de texto sobre `primaryColor`             |
+| `style.position`            | `'right'\|'left'`         | `'right'`          | Alineación horizontal                           |
+| `style.borderRadius`        | `string`                  | `'12px'`           | Radio de bordes                                 |
+| `style.fontFamily`          | `string`                  | `'inherit'`        | Fuente CSS                                      |
+| `style.theme`               | `'auto'\|'light'\|'dark'` | `'auto'`           | Modo de color                                   |
+| `behavior.openOnLoad`       | `boolean`                 | `false`            | Abrir el chat al cargar la página               |
+| `behavior.showTimestamps`   | `boolean`                 | `true`             | Mostrar hora en cada mensaje                    |
+| `behavior.maxMessageLength` | `number`                  | `1000`             | Máximo de caracteres por mensaje                |
+| `behavior.requestTimeout`   | `number`                  | `60000`            | Timeout del webhook (ms)                        |
 
 </details>
 
@@ -117,13 +120,13 @@ window.ChatBubbleConfig = {
 ## API pública
 
 ```javascript
-window.ChatBubble.open();                    // abrir
-window.ChatBubble.close();                   // cerrar
-window.ChatBubble.toggle();                  // alternar
-window.ChatBubble.newChat();                 // nueva conversación (limpia sessionId)
-window.ChatBubble.sendMessage("Hola");       // enviar mensaje programáticamente
-window.ChatBubble.getSessionId();            // obtener sessionId activo
-window.ChatBubble.destroy();                 // remover el widget del DOM
+window.ChatBubble.open(); // abrir
+window.ChatBubble.close(); // cerrar
+window.ChatBubble.toggle(); // alternar
+window.ChatBubble.newChat(); // nueva conversación (limpia sessionId)
+window.ChatBubble.sendMessage("Hola"); // enviar mensaje programáticamente
+window.ChatBubble.getSessionId(); // obtener sessionId activo
+window.ChatBubble.destroy(); // remover el widget del DOM
 ```
 
 ---
@@ -144,7 +147,10 @@ Usuario escribe → chat-bubble.js → POST /webhook (n8n)
 {
   "chatInput": "¿Cuál es el horario de atención?",
   "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-  "metadata": { "timestamp": "2026-07-02T14:30:00.000Z", "source": "chat-bubble" }
+  "metadata": {
+    "timestamp": "2026-07-02T14:30:00.000Z",
+    "source": "chat-bubble"
+  }
 }
 ```
 
@@ -163,12 +169,12 @@ Usuario escribe → chat-bubble.js → POST /webhook (n8n)
 
 ## Configuración de nodos en n8n
 
-| Nodo | Configuración clave |
-|---|---|
-| **Webhook** | Método `POST` · Response Mode = **Response Node** (crítico) · CORS `Allow *` |
-| **Window Buffer Memory** *(opcional)* | `sessionId: {{ $json.body.sessionId }}` · ventana de contexto: 10 mensajes |
-| **AI Agent** | Input: `{{ $json.body.chatInput }}` · System prompt personalizado |
-| **Respond to Webhook** | Debe devolver `{ output, sessionId }` — sin esto se rompe el hilo de conversación |
+| Nodo                                  | Configuración clave                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------- |
+| **Webhook**                           | Método `POST` · Response Mode = **Response Node** (crítico) · CORS `Allow *`      |
+| **Window Buffer Memory** _(opcional)_ | `sessionId: {{ $json.body.sessionId }}` · ventana de contexto: 10 mensajes        |
+| **AI Agent**                          | Input: `{{ $json.body.chatInput }}` · System prompt personalizado                 |
+| **Respond to Webhook**                | Debe devolver `{ output, sessionId }` — sin esto se rompe el hilo de conversación |
 
 ---
 
@@ -185,14 +191,14 @@ El widget renderiza `**negrita**`, `*itálica*`, `` `código` ``, bloques de có
 
 ## Solución de problemas
 
-| Síntoma | Causa probable / solución |
-|---|---|
-| El widget no aparece | Verifica que `.js` y `.css` carguen; `window.ChatBubbleConfig` debe definirse **antes** del script |
-| Error de CORS | En el nodo Webhook de n8n: `Options → CORS → Allow *` o whitelist de tu dominio |
-| Timeout / sin respuesta | Confirma `Response Mode: Response Node` (no *Last Node*); aumenta `requestTimeout` |
-| No hay memoria de conversación | Conecta **Window Buffer Memory** con `sessionId: {{ $json.body.sessionId }}` |
-| Falta el campo `output` | El nodo **Respond to Webhook** debe devolver `{ output, sessionId }` |
-| Problemas en móvil/iOS | Verifica el meta `viewport`; el widget usa `100dvh` para el teclado |
+| Síntoma                        | Causa probable / solución                                                                          |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| El widget no aparece           | Verifica que `.js` y `.css` carguen; `window.ChatBubbleConfig` debe definirse **antes** del script |
+| Error de CORS                  | En el nodo Webhook de n8n: `Options → CORS → Allow *` o whitelist de tu dominio                    |
+| Timeout / sin respuesta        | Confirma `Response Mode: Response Node` (no _Last Node_); aumenta `requestTimeout`                 |
+| No hay memoria de conversación | Conecta **Window Buffer Memory** con `sessionId: {{ $json.body.sessionId }}`                       |
+| Falta el campo `output`        | El nodo **Respond to Webhook** debe devolver `{ output, sessionId }`                               |
+| Problemas en móvil/iOS         | Verifica el meta `viewport`; el widget usa `100dvh` para el teclado                                |
 
 ---
 
@@ -219,6 +225,7 @@ chat-bubble/
 ## Publicación y distribución
 
 **jsDelivr (CDN gratuito):** sube `/dist` a un repo público, crea un release con tag semántico (`v1.0.0`) y el bundle queda disponible en:
+
 ```
 https://cdn.jsdelivr.net/gh/usuario/chat-bubble@1.0.0/dist/chat-bubble.js
 ```
@@ -245,4 +252,4 @@ Si Web Audio API no está disponible, los mensajes de voz se deshabilitan sin ro
 
 ## Licencia
 
-MIT © 2025 — Libre para uso personal y comercial.
+MIT © 2026 — Libre para uso personal y comercial.
