@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Entorno de Pruebas — Aliaddo Chat Widget</title>
+    <meta
+      name="description"
+      content="Entorno de desarrollo y pruebas premium para el widget de chat flotante de Aliaddo. Interactúa, arrastra y escala la interfaz en tiempo real."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="demo.css" />
+  </head>
+  <body>
+    <!-- Fondos decorativos del entorno de pruebas -->
+    <div class="bg-mesh" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow-ring" aria-hidden="true"></div>
+
+    <div class="app-container">
+      <!-- Encabezado con logo y tema -->
+      <header class="app-header">
+        <div class="header-logo">
+          <span class="logo-text">Aliaddo</span>
+        </div>
+        <button
+          class="theme-toggle-btn"
+          id="theme-toggle-btn"
+          aria-label="Cambiar tema"
+        >
+          <span class="sun-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 3v2.25m0 13.5V21M4.22 4.22l1.59 1.59m12.38 12.38l1.59 1.59M21 12h-2.25m-13.5 0H3m2.22 5.78l1.59-1.59m12.38-12.38l1.59-1.59M12 7.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9z"
+              />
+            </svg>
+          </span>
+          <span class="moon-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"
+              />
+            </svg>
+          </span>
+        </button>
+      </header>
+
+      <!-- Tarjeta principal -->
+      <main class="glass-card">
+        <div class="badge">
+          <span class="badge-dot"></span>
+          Pagina de pruebas
+        </div>
+
+        <h1 class="title">Chat <span>Widget</span></h1>
+
+        <p class="description">
+          Espacio de desarrollo y validación del componente de chat para
+          <strong>Ali</strong>, agente de IA de <strong>Aliaddo</strong>.
+        </p>
+
+        <!-- Dashboard de ejemplo -->
+        <div class="dashboard-preview">
+          <div class="dashboard-header">
+            <span class="dot active"></span><span class="dot"></span
+            ><span class="dot"></span>
+          </div>
+          <div class="dashboard-lines">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+          </div>
+        </div>
+
+        <!-- Panel de controles de desarrollo -->
+        <div class="controls-group">
+          <p class="controls-title">Controles de desarrollo</p>
+          <div class="btn-grid">
+            <button class="btn" onclick="triggerOpen()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1
+                .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375
+                0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0
+                .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6
+                1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21
+                l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294
+                0 0 0 5.83-.498c1.585-.233 2.708-1.626
+                2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394
+                48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373
+                3.746 2.25 5.14 2.25 6.741v6.018Z"
+                />
+              </svg>
+              Abrir chat
+            </button>
+            <button class="btn" onclick="triggerToggle()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21
+                7.5m0 0L16.5 12M21 7.5H7.5"
+                />
+              </svg>
+              Toggle chat
+            </button>
+            <button class="btn" onclick="triggerNewChat()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              Nueva sesión
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Configuración del widget -->
+    <script>
+      window.ChatBubbleConfig = {
+        webhook: {
+          url: "https://n8n.aliaddo.cloud/webhook/chat-bubble",
+        },
+        bot: {
+          name: "Ali",
+          avatar: "../public/img/ali-profile-image.png",
+          avatarVideo: "../public/img/ali-profile-video.mp4",
+          welcomeMessage:
+            "Hola, soy Ali 👋. Tu asistente virtual de Aliaddo ¿Como puedo ayudarte?",
+        },
+        style: {
+          primaryColor: "#572b86",
+          position: "right",
+        },
+        behavior: {
+          showTimestamps: true,
+          openOnLoad: true,
+          requestTimeout: 30000,
+        },
+      };
+    </script>
+
+    <!-- Bundle del widget -->
+    <script type="module" src="../dist/chat-bubble.js"></script>
+
+    <!-- LÓGICA AUXILIAR -->
+    <script>
+      function showToast(msg) {
+        const toast = document.getElementById("toast");
+        const text = document.getElementById("toast-text");
+        text.textContent = msg;
+        toast.classList.add("visible");
+        setTimeout(() => {
+          toast.classList.remove("visible");
+        }, 2500);
+      }
+
+      function triggerOpen() {
+        if (window.ChatBubble) {
+          window.ChatBubble.open();
+          showToast("API: ChatBubble.open() disparado");
+        } else {
+          showToast("Error: Widget no inicializado");
+        }
+      }
+
+      function triggerToggle() {
+        if (window.ChatBubble) {
+          window.ChatBubble.toggle();
+          showToast("API: ChatBubble.toggle() disparado");
+        } else {
+          showToast("Error: Widget no inicializado");
+        }
+      }
+
+      function triggerNewChat() {
+        if (window.ChatBubble) {
+          window.ChatBubble.newChat();
+          showToast("API: Nueva sesión iniciada");
+        } else {
+          showToast("Error: Widget no inicializado");
+        }
+      }
+
+      // Inicializar y controlar el cambio de tema de la demo
+      if (!document.documentElement.hasAttribute("data-theme")) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+
+      const themeToggleBtn = document.getElementById("theme-toggle-btn");
+      themeToggleBtn.addEventListener("click", () => {
+        const currentTheme =
+          document.documentElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        /*showToast(
+          `Tema cambiado a: ${newTheme === "light" ? "Claro" : "Oscuro"}`,
+        );*/
+      });
+    </script>
+
+    <!-- Toast de notificación para la demo -->
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="toast-icon"></span>
+      <span id="toast-text"></span>
+    </div>
+
+    <!-- JIVOCHAT — Canal de pruebas -->
+    <!-- <script src="//code.jivosite.com/widget/cyiT32W1yC" async></script> -->
+  </body>
+</html>
