@@ -14,7 +14,7 @@ Pega este código antes del cierre de `</body>`:
 </script>
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/TU-USUARIO/chat-bubble@1.0.0/dist/chat-bubble.js"
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
   async>
 </script>
 ```
@@ -46,7 +46,7 @@ Pega este código antes del cierre de `</body>`:
 </script>
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/TU-USUARIO/chat-bubble@1.0.0/dist/chat-bubble.js"
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
   async>
 </script>
 ```
@@ -56,7 +56,7 @@ Pega este código antes del cierre de `</body>`:
 ```html
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/TU-USUARIO/chat-bubble@1.0.0/dist/chat-bubble.js"
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
   data-webhook="https://TU-N8N.com/webhook/chat-bubble"
   data-bot-name="Asistente"
   data-primary-color="#835ea4"
@@ -82,4 +82,4 @@ window.ChatBubble.destroy();      // Remover el widget del DOM
 3. Hacer commit de `dist/chat-bubble.js` y el chunk generado para emoji-picker
 4. Crear un release con tag `v1.0.0` en GitHub
 5. El CDN queda disponible en:
-   `https://cdn.jsdelivr.net/gh/TU-USUARIO/chat-bubble@1.0.0/dist/chat-bubble.js`
+   `https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js`

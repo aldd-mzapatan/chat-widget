@@ -20,7 +20,7 @@ Pega esto antes del cierre de `</body>`:
 </script>
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/usuario/chat-bubble@1.0.0/dist/chat-bubble.js"
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
 ></script>
 ```
 
@@ -227,7 +227,7 @@ chat-bubble/
 **jsDelivr (CDN gratuito):** sube `/dist` a un repo público, crea un release con tag semántico (`v1.0.0`) y el bundle queda disponible en:
 
 ```
-https://cdn.jsdelivr.net/gh/usuario/chat-bubble@1.0.0/dist/chat-bubble.js
+https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js
 ```
 
 **Self-hosted:** `npm run build` y sirve `dist/*` desde tu propio dominio.
