@@ -17,5 +17,8 @@ npm-debug.log*
 .idea/
 *.swp
 
+# Guía para Claude Code (local)
+CLAUDE.md
+
 # IMPORTANTE: dist/ NO está en .gitignore porque los archivos
 # compilados deben subirse a GitHub para que jsDelivr pueda servirlos

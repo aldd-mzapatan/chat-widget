@@ -89,10 +89,10 @@ export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadat
 
   // Procesar errores de respuesta HTTP
   if (!response.ok) {
-    let errorDetail = '';
+    // Registrar el detalle técnico solo en consola, nunca mostrarlo al usuario
     try {
       const errorBody = await response.text();
-      if (errorBody) errorDetail = `: ${errorBody.slice(0, 200)}`;
+      if (errorBody) console.error('[ChatBubble] Detalle del error del webhook:', errorBody.slice(0, 500));
     } catch (_) {}
 
     if (response.status === 401 || response.status === 403) {
@@ -105,9 +105,9 @@ export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadat
       throw new Error(`Demasiadas solicitudes (429). Espera un momento antes de enviar otro mensaje.`);
     }
     if (response.status >= 500) {
-      throw new Error(`Error interno del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible${errorDetail}`);
+      throw new Error(`Error interno del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible.`);
     }
-    throw new Error(`Error HTTP ${response.status}${errorDetail}`);
+    throw new Error(`Error HTTP ${response.status}. No se pudo procesar tu solicitud.`);
   }
 
   // Decodificar respuesta JSON
@@ -129,6 +129,93 @@ export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadat
       };
     }
     throw new Error('La respuesta del servidor no contiene el campo "output". Verifica la configuración del workflow en n8n.');
+  }
+
+  return {
+    output: String(data.output),
+    sessionId: data.sessionId || sessionId,
+  };
+}
+
+// Enviar archivo de imagen al webhook en formato multipart
+export async function sendImageMessage(
+  webhookUrl,
+  imageFile,
+  sessionId,
+  caption = '',
+  extraMetadata = {},
+  timeout = DEFAULT_TIMEOUT,
+  signal = null
+) {
+  if (!webhookUrl) {
+    throw new Error('URL del webhook no configurada.');
+  }
+
+  const formData = new FormData();
+  formData.append('sessionId', sessionId);
+  formData.append(
+    'metadata',
+    JSON.stringify({
+      type: 'image',
+      caption: caption || '',
+      mimeType: imageFile.type,
+      fileName: imageFile.name || '',
+      size: imageFile.size,
+      timestamp: new Date().toISOString(),
+      source: 'chat-bubble',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      ...extraMetadata,
+    })
+  );
+  if (caption) formData.append('chatInput', caption);
+  formData.append('imageFile', imageFile, imageFile.name || 'image');
+
+  const options = {
+    method: 'POST',
+    // Omitir Content-Type para permitir generación automática de boundary
+    body: formData,
+  };
+
+  let response;
+  try {
+    response = await fetchWithRetry(webhookUrl, options, timeout, MAX_RETRIES, signal);
+  } catch (error) {
+    if (error.name === 'AbortError' && signal && signal.aborted) throw error;
+    throw new Error(classifyError(error));
+  }
+
+  if (!response.ok) {
+    // Registrar el detalle técnico solo en consola, nunca mostrarlo al usuario
+    try {
+      const errorBody = await response.text();
+      if (errorBody) console.error('[ChatBubble] Detalle del error del webhook:', errorBody.slice(0, 500));
+    } catch (_) {}
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`Sin autorización para acceder al webhook (${response.status}).`);
+    }
+    if (response.status === 404) {
+      throw new Error(`Webhook no encontrado (404). Verifica la URL y que el workflow esté activo.`);
+    }
+    if (response.status >= 500) {
+      throw new Error(`Error del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible.`);
+    }
+    throw new Error(`Error HTTP ${response.status}. No se pudo procesar tu solicitud.`);
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (_) {
+    throw new Error('La respuesta del servidor no es JSON válido.');
+  }
+
+  if (!data || typeof data.output === 'undefined') {
+    const possibleOutput = data?.message || data?.text || data?.response || data?.content;
+    if (possibleOutput) {
+      return { output: String(possibleOutput), sessionId: data.sessionId || sessionId };
+    }
+    throw new Error('La respuesta del servidor no contiene el campo "output".');
   }
 
   return {
@@ -191,10 +278,10 @@ export async function sendAudioMessage(
   }
 
   if (!response.ok) {
-    let errorDetail = '';
+    // Registrar el detalle técnico solo en consola, nunca mostrarlo al usuario
     try {
       const errorBody = await response.text();
-      if (errorBody) errorDetail = `: ${errorBody.slice(0, 200)}`;
+      if (errorBody) console.error('[ChatBubble] Detalle del error del webhook:', errorBody.slice(0, 500));
     } catch (_) {}
 
     if (response.status === 401 || response.status === 403) {
@@ -204,9 +291,9 @@ export async function sendAudioMessage(
       throw new Error(`Webhook no encontrado (404). Verifica la URL y que el workflow esté activo.`);
     }
     if (response.status >= 500) {
-      throw new Error(`Error del servidor (${response.status})${errorDetail}`);
+      throw new Error(`Error del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible.`);
     }
-    throw new Error(`Error HTTP ${response.status}${errorDetail}`);
+    throw new Error(`Error HTTP ${response.status}. No se pudo procesar tu solicitud.`);
   }
 
   let data;

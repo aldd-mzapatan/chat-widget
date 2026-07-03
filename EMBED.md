@@ -8,15 +8,15 @@ Pega este código antes del cierre de `</body>`:
 <script>
   window.ChatBubbleConfig = {
     webhook: {
-      url: 'https://TU-N8N.com/webhook/chat-bubble'
-    }
+      url: "https://TU-N8N.com/webhook/chat-bubble",
+    },
   };
 </script>
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
-  async>
-</script>
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.1.0/dist/chat-bubble.js"
+  async
+></script>
 ```
 
 ## Opción 2 — Configuración completa
@@ -25,30 +25,30 @@ Pega este código antes del cierre de `</body>`:
 <script>
   window.ChatBubbleConfig = {
     webhook: {
-      url: 'https://TU-N8N.com/webhook/chat-bubble'
+      url: "https://TU-N8N.com/webhook/chat-bubble",
     },
     bot: {
-      name: 'Asistente',
-      avatar: 'https://tu-sitio.com/avatar.png',
-      welcomeMessage: '¡Hola! ¿En qué te puedo ayudar?'
+      name: "Asistente",
+      avatar: "https://tu-sitio.com/avatar.png",
+      welcomeMessage: "¡Hola! ¿En qué te puedo ayudar?",
     },
     style: {
-      primaryColor: '#835ea4',
-      position: 'right',
-      theme: 'auto'
+      primaryColor: "#835ea4",
+      position: "right",
+      theme: "auto",
     },
     behavior: {
       openOnLoad: false,
       showTimestamps: true,
-      maxMessageLength: 1000
-    }
+      maxMessageLength: 1000,
+    },
   };
 </script>
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
-  async>
-</script>
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.1.0/dist/chat-bubble.js"
+  async
+></script>
 ```
 
 ## Opción 3 — Solo con atributos (configuración express)
@@ -56,23 +56,23 @@ Pega este código antes del cierre de `</body>`:
 ```html
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js"
+  src="https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.1.0/dist/chat-bubble.js"
   data-webhook="https://TU-N8N.com/webhook/chat-bubble"
   data-bot-name="Asistente"
   data-primary-color="#835ea4"
-  async>
-</script>
+  async
+></script>
 ```
 
 ## API JavaScript (control programático)
 
 ```javascript
-window.ChatBubble.open();         // Abrir el chat
-window.ChatBubble.close();        // Cerrar el chat
-window.ChatBubble.toggle();       // Alternar
-window.ChatBubble.newChat();      // Nueva conversación
+window.ChatBubble.open(); // Abrir el chat
+window.ChatBubble.close(); // Cerrar el chat
+window.ChatBubble.toggle(); // Alternar
+window.ChatBubble.newChat(); // Nueva conversación
 window.ChatBubble.getSessionId(); // Obtener ID de sesión
-window.ChatBubble.destroy();      // Remover el widget del DOM
+window.ChatBubble.destroy(); // Remover el widget del DOM
 ```
 
 ## Cómo publicar en GitHub para usar jsDelivr
@@ -82,4 +82,4 @@ window.ChatBubble.destroy();      // Remover el widget del DOM
 3. Hacer commit de `dist/chat-bubble.js` y el chunk generado para emoji-picker
 4. Crear un release con tag `v1.0.0` en GitHub
 5. El CDN queda disponible en:
-   `https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js`
+   `https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.1.0/dist/chat-bubble.js`

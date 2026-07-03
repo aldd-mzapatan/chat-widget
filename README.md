@@ -222,18 +222,6 @@ chat-bubble/
 
 ---
 
-## Publicación y distribución
-
-**jsDelivr (CDN gratuito):** sube `/dist` a un repo público, crea un release con tag semántico (`v1.0.0`) y el bundle queda disponible en:
-
-```
-https://cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@1.0.0/dist/chat-bubble.js
-```
-
-**Self-hosted:** `npm run build` y sirve `dist/*` desde tu propio dominio.
-
----
-
 ## Compatibilidad de navegadores
 
 Chrome/Edge 80+ · Firefox 75+ · Safari 13+. Sin soporte para IE11.

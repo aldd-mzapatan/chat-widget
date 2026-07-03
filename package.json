@@ -1,6 +1,6 @@
 {
   "name": "chat-bubble",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Widget de chat flotante e integrable con n8n via webhook",
   "main": "src/chat-bubble.js",
   "scripts": {
@@ -9,11 +9,17 @@
     "watch": "esbuild src/chat-bubble.js --bundle --sourcemap --watch --splitting --format=esm --outdir=dist --loader:.css=text",
     "serve": "npx serve ."
   },
-  "keywords": ["chat", "widget", "n8n", "webhook", "ai", "chatbot"],
+  "keywords": [
+    "chat",
+    "widget",
+    "n8n",
+    "webhook",
+    "ai",
+    "chatbot"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "esbuild": "^0.20.0",
-    "emoji-picker-element": "^1.21.0"
+    "esbuild": "^0.20.0"
   }
 }

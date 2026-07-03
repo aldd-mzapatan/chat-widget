@@ -13,7 +13,11 @@ import {
   setActiveSessionId,
 } from "./utils/session.js";
 import { parseMarkdown, escapeText } from "./utils/markdown.js";
-import { sendMessage, sendAudioMessage } from "./utils/api.js";
+import {
+  sendMessage,
+  sendAudioMessage,
+  sendImageMessage,
+} from "./utils/api.js";
 import {
   AudioRecorder,
   formatDuration,
@@ -74,11 +78,9 @@ const ICONS = {
     <polyline points="6 9 12 15 18 9"></polyline>
   </svg>`,
 
-  emoji: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="10"></circle>
-    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+  attach: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
   </svg>`,
 
   mic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -133,6 +135,7 @@ const DEFAULT_CONFIG = {
     enableSoundNotification: false,
     maxMessageLength: 1000,
     requestTimeout: 60000,
+    maxImageSizeMB: 5,
   },
 };
 
@@ -145,10 +148,13 @@ class ChatBubble {
     this.hasNewMessage = false;
     this.sessionId = getOrCreateSessionId();
     this.messageCount = 0;
-    this._emojiPickerLoaded = false;
     this.chatHistory = [];
     // Guardar referencia al mensaje seleccionado
     this.replyingTo = null;
+
+    // Guardar imagen adjunta pendiente de envío
+    this.pendingImage = null;
+    this._attachmentPreviewUrl = null;
 
     // Inicializar estado de grabación de voz
     this.audioRecorder = null;
@@ -204,13 +210,25 @@ class ChatBubble {
           } catch (e) {
             console.error("Error cargando audio del historial", e);
           }
+        } else if (msg.isImage && msg.imageData) {
+          try {
+            const blob = await base64ToBlob(msg.imageData);
+            await this._addUserImageMessage(
+              blob,
+              msg.caption || "",
+              dateObj,
+              false,
+            );
+          } catch (e) {
+            console.error("Error cargando imagen del historial", e);
+          }
         } else {
           this.replyingTo = msg.replyingTo || null;
           this._addUserMessage(msg.text, dateObj, false);
           this.replyingTo = null;
         }
       } else if (msg.role === "bot") {
-        this._addBotMessage(msg.text, msg.isError, dateObj, false, false); // isAnimated=false
+        this._addBotMessage(msg.text, dateObj, false, false); // isAnimated=false
       }
     }
     this._scrollToBottom();
@@ -289,6 +307,7 @@ class ChatBubble {
             ${ICONS.close}
           </button>
         </div>
+        <div class="cb-toast-container" id="cb-toast-container" role="alert" aria-live="assertive"></div>
       </div>
       <div class="cb-resize-handle" id="cb-resize-handle"></div>
 
@@ -341,16 +360,25 @@ class ChatBubble {
         </button>
       </div>
 
+      <div class="cb-attachment-preview" id="cb-attachment-preview" aria-hidden="true">
+        <div class="cb-attachment-thumb" id="cb-attachment-thumb"></div>
+        <div class="cb-attachment-info">
+          <span class="cb-attachment-name" id="cb-attachment-name"></span>
+          <span class="cb-attachment-hint">Imagen adjunta</span>
+        </div>
+        <button class="cb-attachment-remove" id="cb-attachment-remove" aria-label="Quitar imagen adjunta" title="Quitar imagen">
+          ${ICONS.close}
+        </button>
+      </div>
+
       <div class="cb-input-area">
         <button id="cb-scroll-bottom-btn" class="cb-scroll-bottom-btn" aria-label="Desplazarse hacia abajo">
           ${ICONS.chevronDown}
         </button>
-        <button id="cb-emoji-btn" class="cb-emoji-btn" aria-label="Insertar emoji">
-          ${ICONS.emoji}
+        <button id="cb-attach-btn" class="cb-attach-btn" aria-label="Adjuntar imagen" title="Adjuntar imagen">
+          ${ICONS.attach}
         </button>
-        <div id="cb-emoji-picker" class="cb-emoji-picker-wrapper" aria-label="Selector de emojis">
-          <emoji-picker id="cb-emoji-picker-el" class="cb-emoji-picker-el"></emoji-picker>
-        </div>
+        <input type="file" id="cb-file-input" class="cb-file-input-hidden" accept="image/png,image/jpeg,image/webp,image/bmp,image/heic,image/heif" tabindex="-1" aria-hidden="true" />
         <textarea
           id="cb-input"
           placeholder="Preguntarle a Ali..."
@@ -413,30 +441,54 @@ class ChatBubble {
     this.scrollBottomBtn = this.shadowRoot.getElementById(
       "cb-scroll-bottom-btn",
     );
-    this.emojiBtn = this.shadowRoot.getElementById("cb-emoji-btn");
-    this.emojiPicker = this.shadowRoot.getElementById("cb-emoji-picker");
-    this.emojiPickerEl = this.shadowRoot.getElementById("cb-emoji-picker-el");
+    this.toastContainer = this.shadowRoot.getElementById("cb-toast-container");
+    this.attachBtn = this.shadowRoot.getElementById("cb-attach-btn");
+    this.fileInput = this.shadowRoot.getElementById("cb-file-input");
+    this.attachmentPreview = this.shadowRoot.getElementById(
+      "cb-attachment-preview",
+    );
+    this.attachmentThumb = this.shadowRoot.getElementById(
+      "cb-attachment-thumb",
+    );
+    this.attachmentName = this.shadowRoot.getElementById("cb-attachment-name");
+    this.attachmentRemoveBtn = this.shadowRoot.getElementById(
+      "cb-attachment-remove",
+    );
     this.replyPreview = this.shadowRoot.getElementById("cb-reply-preview");
     this.replyText = this.shadowRoot.getElementById("cb-reply-text");
     this.replyCancelBtn = this.shadowRoot.getElementById("cb-reply-cancel");
     this.micBtn = this.shadowRoot.getElementById("cb-mic-btn");
-    
+
     // Referencias para el historial y acciones del header
     this.actionsBtn = this.shadowRoot.getElementById("cb-actions-btn");
     this.actionsMenu = this.shadowRoot.getElementById("cb-actions-menu");
     this.historyBtn = this.shadowRoot.getElementById("cb-history-btn");
     this.historyPanel = this.shadowRoot.getElementById("cb-history-panel");
     this.historyList = this.shadowRoot.getElementById("cb-history-list");
-    this.historyTitle = this.shadowRoot.getElementById("cb-history-panel-title");
-    this.historyFooter = this.shadowRoot.getElementById("cb-history-panel-footer");
-    this.historyClearBtn = this.shadowRoot.getElementById("cb-history-clear-btn");
-    this.clearAllOverlay = this.shadowRoot.getElementById("cb-clear-all-overlay");
+    this.historyTitle = this.shadowRoot.getElementById(
+      "cb-history-panel-title",
+    );
+    this.historyFooter = this.shadowRoot.getElementById(
+      "cb-history-panel-footer",
+    );
+    this.historyClearBtn = this.shadowRoot.getElementById(
+      "cb-history-clear-btn",
+    );
+    this.clearAllOverlay = this.shadowRoot.getElementById(
+      "cb-clear-all-overlay",
+    );
     this.clearAllDialog = this.shadowRoot.getElementById("cb-clear-all-dialog");
-    this.clearAllCancelBtn = this.shadowRoot.getElementById("cb-clear-all-cancel-btn");
-    this.clearAllConfirmBtn = this.shadowRoot.getElementById("cb-clear-all-confirm-btn");
+    this.clearAllCancelBtn = this.shadowRoot.getElementById(
+      "cb-clear-all-cancel-btn",
+    );
+    this.clearAllConfirmBtn = this.shadowRoot.getElementById(
+      "cb-clear-all-confirm-btn",
+    );
 
     if (this.historyClearBtn) {
-      this.historyClearBtn.addEventListener("click", () => this._openClearAllModal());
+      this.historyClearBtn.addEventListener("click", () =>
+        this._openClearAllModal(),
+      );
     }
     if (this.clearAllOverlay) {
       // Cerrar al hacer clic en el fondo (fuera del diálogo)
@@ -445,7 +497,9 @@ class ChatBubble {
       });
     }
     if (this.clearAllCancelBtn) {
-      this.clearAllCancelBtn.addEventListener("click", () => this._closeClearAllModal());
+      this.clearAllCancelBtn.addEventListener("click", () =>
+        this._closeClearAllModal(),
+      );
     }
     if (this.clearAllConfirmBtn) {
       this.clearAllConfirmBtn.addEventListener("click", () => {
@@ -503,77 +557,6 @@ class ChatBubble {
     } else {
       this.window.removeAttribute("data-theme");
     }
-
-    // Sincronizar tema visual del selector de emojis
-    this._applyEmojiPickerTheme();
-  }
-
-  _applyEmojiPickerTheme() {
-    if (!this.emojiPickerEl) return;
-
-    // Verificar preferencia de sistema para modo oscuro
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    const theme = this.config.style.theme;
-    const isDark = theme === "dark" || (theme === "auto" && prefersDark);
-
-    // Aplicar clase CSS según tema seleccionado
-    this.emojiPickerEl.className = `cb-emoji-picker-el ${isDark ? "dark" : "light"}`;
-
-    const primary = this.config.style.primaryColor || "#572b86";
-    this.emojiPickerEl.style.setProperty("--outline-color", primary);
-    this.emojiPickerEl.style.setProperty("--indicator-color", primary);
-
-    if (this.emojiPickerEl.shadowRoot) {
-      const existingStyle = this.emojiPickerEl.shadowRoot.getElementById(
-        "cb-picker-theme-override",
-      );
-      if (existingStyle) existingStyle.remove();
-
-      const styleEl = document.createElement("style");
-      styleEl.id = "cb-picker-theme-override";
-      styleEl.textContent = isDark
-        ? `
-          
-          :host {
-            --background: #1c1528;
-            --border-color: rgba(87, 43, 134, 0.18);
-            --input-border-color: rgba(87, 43, 134, 0.18);
-            --input-font-color: #f0ecf8;
-            --input-placeholder-color: #9b8fb0;
-            --category-font-color: #9b8fb0;
-            --button-hover-background: #141020;
-            --emoji-padding: 6px;
-          }
-        `
-        : `
-          
-          :host {
-            --background: #ffffff;
-            --border-color: rgba(87, 43, 134, 0.14);
-            --input-border-color: rgba(87, 43, 134, 0.14);
-            --input-font-color: #1a1025;
-            --input-placeholder-color: #7c6d94;
-            --category-font-color: #7c6d94;
-            --button-hover-background: #f6f5fa;
-            --emoji-padding: 6px;
-          }
-        `;
-      this.emojiPickerEl.shadowRoot.appendChild(styleEl);
-    }
-  }
-
-  async _loadEmojiPicker() {
-    if (this._emojiPickerLoaded) return;
-    try {
-      await import("emoji-picker-element");
-      this._emojiPickerLoaded = true;
-      // Aplicar clase CSS según tema seleccionado
-      setTimeout(() => this._applyEmojiPickerTheme(), 100);
-    } catch (err) {
-      console.warn("[ChatBubble] No se pudo cargar el emoji picker:", err);
-    }
   }
 
   // Asignar controladores de eventos del DOM
@@ -592,7 +575,10 @@ class ChatBubble {
 
     // Cerrar dropdown al hacer clic fuera
     this.shadowRoot.addEventListener("click", (e) => {
-      if (this.actionsMenu && !this.actionsMenu.classList.contains("cb-is-hidden")) {
+      if (
+        this.actionsMenu &&
+        !this.actionsMenu.classList.contains("cb-is-hidden")
+      ) {
         const dropdown = this.shadowRoot.getElementById("cb-actions-dropdown");
         if (dropdown && !dropdown.contains(e.target)) {
           this._closeActionsMenu();
@@ -607,9 +593,13 @@ class ChatBubble {
       });
     }
 
-    const closeHistoryBtn = this.shadowRoot.getElementById("cb-history-panel-close");
+    const closeHistoryBtn = this.shadowRoot.getElementById(
+      "cb-history-panel-close",
+    );
     if (closeHistoryBtn) {
-      closeHistoryBtn.addEventListener("click", () => this._closeHistoryPanel());
+      closeHistoryBtn.addEventListener("click", () =>
+        this._closeHistoryPanel(),
+      );
     }
 
     const newSessionBtn = this.shadowRoot.getElementById("cb-new-session-btn");
@@ -620,7 +610,9 @@ class ChatBubble {
       });
     }
 
-    const closeWindowBtn = this.shadowRoot.getElementById("cb-close-window-btn");
+    const closeWindowBtn = this.shadowRoot.getElementById(
+      "cb-close-window-btn",
+    );
     if (closeWindowBtn) {
       closeWindowBtn.addEventListener("click", () => this._closeChat());
     }
@@ -651,13 +643,22 @@ class ChatBubble {
       this._updateSendButtonState();
     });
 
+    // Permitir adjuntar una imagen pegándola directamente (Ctrl+V)
+    this.input.addEventListener("paste", (e) => this._handlePaste(e));
+
     // Cerrar chat o panel al presionar Escape
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
-        if (this.clearAllOverlay && this.clearAllOverlay.classList.contains("cb-is-active")) {
+        if (
+          this.clearAllOverlay &&
+          this.clearAllOverlay.classList.contains("cb-is-active")
+        ) {
           this._closeClearAllModal();
           e.stopPropagation();
-        } else if (this.historyPanel && this.historyPanel.classList.contains("cb-is-active")) {
+        } else if (
+          this.historyPanel &&
+          this.historyPanel.classList.contains("cb-is-active")
+        ) {
           this._closeHistoryPanel();
           e.stopPropagation();
         } else if (this.isOpen) {
@@ -679,98 +680,29 @@ class ChatBubble {
       });
     });
 
-    const handleEmojiPickerKeydown = (e) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        this.emojiPicker.classList.remove("cb-visible");
-        this.emojiBtn.focus();
-        document.removeEventListener("keydown", handleEmojiPickerKeydown);
-        return;
-      }
-      if (e.key === "Tab") {
-        const items = Array.from(
-          this.emojiPicker.querySelectorAll(".cb-emoji-item"),
-        );
-        if (items.length === 0) return;
-        const first = items[0];
-        const last = items[items.length - 1];
-
-        if (e.shiftKey) {
-          if (
-            document.activeElement === first ||
-            document.activeElement === this.emojiPicker
-          ) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    };
-
-    // Abrir o cerrar selector de emojis
-    this.emojiBtn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-
-      // Cargar módulo de emojis perezosamente
-      if (!this._emojiPickerLoaded) {
-        await this._loadEmojiPicker();
-      }
-
-      const isOpening = this.emojiPicker.classList.toggle("cb-visible");
-      if (isOpening) {
-        setTimeout(() => {
-          this._applyEmojiPickerTheme();
-          const searchInput = this.emojiPickerEl?.shadowRoot?.querySelector(
-            'input[type="search"]',
-          );
-          if (searchInput) searchInput.focus();
-        }, 50);
-        document.addEventListener("keydown", handleEmojiPickerKeydown);
-      } else {
-        document.removeEventListener("keydown", handleEmojiPickerKeydown);
-      }
-    });
-
-    // Insertar emoji seleccionado en el campo de texto
-    if (this.emojiPickerEl) {
-      this.emojiPickerEl.addEventListener("emoji-click", (e) => {
-        const emoji = e.detail.unicode;
-        if (emoji) {
-          this._insertAtCursor(this.input, emoji);
-        }
+    // Abrir selector nativo de archivos al pulsar adjuntar
+    if (this.attachBtn) {
+      this.attachBtn.addEventListener("click", () => {
+        if (this.isLoading || this.isRecording) return;
+        this.fileInput.click();
       });
     }
 
-    // Cerrar selector de emojis al hacer clic fuera
-    document.addEventListener("click", (e) => {
-      // Ignorar si el selector ya está cerrado
-      if (!this.emojiPicker.classList.contains("cb-visible")) return;
+    // Procesar imagen elegida por el usuario
+    if (this.fileInput) {
+      this.fileInput.addEventListener("change", (e) =>
+        this._handleFileSelected(e),
+      );
+    }
 
-      // Ignorar clic en el botón disparador
-      if (this.emojiBtn.contains(e.target) || e.target === this.emojiBtn)
-        return;
-
-      if (this.emojiPicker.contains(e.target)) return;
-
-      if (this.emojiPickerEl) {
-        const path = e.composedPath();
-        if (
-          path.includes(this.emojiPickerEl) ||
-          path.includes(this.emojiPicker)
-        ) {
-          return;
-        }
-      }
-
-      // Cerrar selector de emojis
-      this.emojiPicker.classList.remove("cb-visible");
-      document.removeEventListener("keydown", handleEmojiPickerKeydown);
-    });
+    // Quitar imagen adjunta antes de enviarla
+    if (this.attachmentRemoveBtn) {
+      this.attachmentRemoveBtn.addEventListener("click", () => {
+        this._clearPendingImage();
+        this._updateSendButtonState();
+        this.input.focus();
+      });
+    }
   }
 
   _initDraggable() {
@@ -977,10 +909,15 @@ class ChatBubble {
     // Reiniciar estado de carga para desbloquear el input
     this._setLoadingState(false);
     this._clearReply();
+    this._clearPendingImage();
 
     // Persistir sesión actual en el índice antes de limpiar si tiene historial
     if (this.chatHistory && this.chatHistory.length > 0) {
-      saveSessionToIndex(this.sessionId, this._getHistoryTitle(), this.chatHistory.length);
+      saveSessionToIndex(
+        this.sessionId,
+        this._getHistoryTitle(),
+        this.chatHistory.length,
+      );
     }
 
     this._clearMessages();
@@ -1028,19 +965,13 @@ class ChatBubble {
   }
 
   // Insertar mensaje del asistente en el chat
-  _addBotMessage(
-    text,
-    isError = false,
-    dateObj = new Date(),
-    save = true,
-    isAnimated = true,
-  ) {
+  _addBotMessage(text, dateObj = new Date(), save = true, isAnimated = true) {
     this._hideThinkingIndicator();
     this._hideEmptyState();
     this._checkDateDivider(dateObj);
 
     const message = document.createElement("div");
-    message.className = `cb-message cb-message--bot${isError ? " cb-message--error" : ""}`;
+    message.className = "cb-message cb-message--bot";
 
     // Configurar avatar junto al mensaje
     const avatarEl = document.createElement("div");
@@ -1096,26 +1027,18 @@ class ChatBubble {
     this.messageCount++;
     this._scrollToBottom();
 
-    if (save && !isError) {
+    if (save) {
       this.chatHistory.push({
         role: "bot",
         text: text,
         date: dateObj.toISOString(),
-        isError: isError,
       });
       saveChatHistory(this.chatHistory, this.sessionId);
-      saveSessionToIndex(this.sessionId, this._getHistoryTitle(), this.chatHistory.length);
-    }
-
-    if (isError) {
-      const iconSpan = document.createElement("span");
-      iconSpan.innerHTML = ICONS.warning;
-      iconSpan.style.marginRight = "6px";
-      iconSpan.style.verticalAlign = "middle";
-      content.appendChild(iconSpan);
-      const textNode = document.createTextNode(text);
-      content.appendChild(textNode);
-      return message;
+      saveSessionToIndex(
+        this.sessionId,
+        this._getHistoryTitle(),
+        this.chatHistory.length,
+      );
     }
 
     // Convertir Markdown a HTML
@@ -1318,7 +1241,11 @@ class ChatBubble {
         isAudio: false,
       });
       saveChatHistory(this.chatHistory, this.sessionId);
-      saveSessionToIndex(this.sessionId, this._getHistoryTitle(), this.chatHistory.length);
+      saveSessionToIndex(
+        this.sessionId,
+        this._getHistoryTitle(),
+        this.chatHistory.length,
+      );
     }
 
     if (this.replyingTo) {
@@ -1401,11 +1328,15 @@ class ChatBubble {
     });
 
     // Arranca en cuanto el navegador tiene suficientes datos
-    video.addEventListener("canplay", () => {
-      avatarWrap.classList.add("cb-is-playing");
-      video.playbackRate = SPEED;
-      video.play().catch(() => {});
-    }, { once: true });
+    video.addEventListener(
+      "canplay",
+      () => {
+        avatarWrap.classList.add("cb-is-playing");
+        video.playbackRate = SPEED;
+        video.play().catch(() => {});
+      },
+      { once: true },
+    );
   }
 
   // Construir cabecera de presentación
@@ -1536,26 +1467,69 @@ class ChatBubble {
     this.notificationBadge.classList.remove("cb-visible");
   }
 
+  // Mostrar notificación flotante de error debajo del header
+  _showErrorToast(message) {
+    if (!this.toastContainer) return;
+
+    const TOAST_DURATION_MS = 5000;
+    const TOAST_EXIT_MS = 300;
+
+    const toast = document.createElement("div");
+    toast.className = "cb-toast";
+
+    const icon = document.createElement("span");
+    icon.className = "cb-toast-icon";
+    icon.innerHTML = ICONS.warning;
+
+    const text = document.createElement("span");
+    text.className = "cb-toast-text";
+    text.textContent = message;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "cb-toast-close";
+    closeBtn.setAttribute("aria-label", "Cerrar notificación");
+    closeBtn.innerHTML = ICONS.close;
+
+    toast.appendChild(icon);
+    toast.appendChild(text);
+    toast.appendChild(closeBtn);
+    this.toastContainer.appendChild(toast);
+
+    let dismissTimer;
+    const dismiss = () => {
+      if (toast.dataset.dismissed) return;
+      toast.dataset.dismissed = "true";
+      clearTimeout(dismissTimer);
+      toast.classList.remove("cb-toast--visible");
+      setTimeout(() => toast.remove(), TOAST_EXIT_MS);
+    };
+
+    closeBtn.addEventListener("click", dismiss);
+    dismissTimer = setTimeout(dismiss, TOAST_DURATION_MS);
+
+    // Forzar reflow antes de animar la entrada
+    requestAnimationFrame(() => toast.classList.add("cb-toast--visible"));
+  }
+
   // Manejar envío de mensajes de texto
   async _handleSend() {
     const text = this.input.value.trim();
+    const image = this.pendingImage;
 
-    if (!text || this.isLoading) return;
+    if ((!text && !image) || this.isLoading) return;
 
     // Limitar longitud del mensaje
     if (text.length > this.config.behavior.maxMessageLength) {
-      this._addBotMessage(
+      this._showErrorToast(
         `El mensaje es demasiado largo. Por favor, usa menos de ${this.config.behavior.maxMessageLength} caracteres.`,
-        true,
       );
       return;
     }
 
     // Advertir si falta la configuración del webhook
     if (!this.config.webhook.url) {
-      this._addBotMessage(
+      this._showErrorToast(
         "El widget no está configurado correctamente. Falta la URL del webhook de n8n.",
-        true,
       );
       return;
     }
@@ -1564,7 +1538,16 @@ class ChatBubble {
     this.input.value = "";
     this._autoResizeTextarea();
     this._updateSendButtonState();
-    this.emojiPicker.classList.remove("cb-visible");
+
+    // Delegar al flujo de envío de imagen si hay una adjunta
+    if (image) {
+      this._clearPendingImage();
+      this._updateSendButtonState();
+      this._addUserImageMessage(image, text);
+      this._sendImageToWebhook(image, text);
+      return;
+    }
+
     this._setLoadingState(true);
 
     // Insertar mensaje enviado en la interfaz
@@ -1618,9 +1601,8 @@ class ChatBubble {
           this.sessionId = response.sessionId;
         }
       } else {
-        this._addBotMessage(
+        this._showErrorToast(
           "Ocurrió un error al procesar tu mensaje. La respuesta del servidor no tiene el formato esperado.",
-          true,
         );
       }
     } catch (error) {
@@ -1628,10 +1610,7 @@ class ChatBubble {
       if (error.name === "AbortError") return;
       this._hideTypingIndicator();
       this._hideThinkingIndicator();
-      this._addBotMessage(
-        error.message || this.config.bot.offlineMessage,
-        true,
-      );
+      this._showErrorToast(error.message || this.config.bot.offlineMessage);
     } finally {
       this._setLoadingState(false);
       if (this.isOpen) this.input.focus();
@@ -1643,6 +1622,7 @@ class ChatBubble {
     this.isLoading = loading;
     this.input.disabled = loading;
     this.sendBtn.disabled = loading;
+    if (this.attachBtn) this.attachBtn.disabled = loading;
 
     if (loading) {
       this.sendBtn.setAttribute("aria-busy", "true");
@@ -1662,7 +1642,8 @@ class ChatBubble {
   // Alternar visibilidad entre botón de envío y micrófono
   _updateSendButtonState() {
     const hasText = this.input.value.trim().length > 0;
-    if (hasText) {
+    const hasImage = !!this.pendingImage;
+    if (hasText || hasImage) {
       this.sendBtn.classList.add("cb-visible");
       if (this.micBtn) this.micBtn.classList.remove("cb-visible");
     } else {
@@ -1691,7 +1672,8 @@ class ChatBubble {
       threshold;
     const hasScrollbar = container.scrollHeight > container.clientHeight;
 
-    const isHistoryActive = this.historyPanel && this.historyPanel.classList.contains("cb-is-active");
+    const isHistoryActive =
+      this.historyPanel && this.historyPanel.classList.contains("cb-is-active");
 
     if (isScrolledUp && hasScrollbar && !isHistoryActive) {
       this.scrollBottomBtn.classList.add("cb-visible");
@@ -1815,7 +1797,7 @@ class ChatBubble {
     // Manejar errores de captura de audio
     this.audioRecorder.onError = (msg) => {
       this._hideRecordingUI();
-      this._addBotMessage(`⚠️ ${msg}`, true);
+      this._showErrorToast(msg);
     };
 
     await this.audioRecorder.start();
@@ -1850,6 +1832,7 @@ class ChatBubble {
     // Esconder controles estándar del área de texto
     this.input.style.visibility = "hidden";
     if (this.micBtn) this.micBtn.style.visibility = "hidden";
+    if (this.attachBtn) this.attachBtn.disabled = true;
 
     // Inicializar capa superpuesta de controles de grabación
     if (!this._recordingOverlay) {
@@ -1916,6 +1899,7 @@ class ChatBubble {
     this.isRecording = false;
     this.input.style.visibility = "";
     if (this.micBtn) this.micBtn.style.visibility = "";
+    if (this.attachBtn) this.attachBtn.disabled = false;
 
     if (this._recordingOverlay) {
       this._recordingOverlay.remove();
@@ -2041,7 +2025,11 @@ class ChatBubble {
           date: dateObj.toISOString(),
         });
         saveChatHistory(this.chatHistory, this.sessionId);
-        saveSessionToIndex(this.sessionId, this._getHistoryTitle(), this.chatHistory.length);
+        saveSessionToIndex(
+          this.sessionId,
+          this._getHistoryTitle(),
+          this.chatHistory.length,
+        );
       } catch (err) {
         console.error("Error guardando historial de audio", err);
       }
@@ -2081,9 +2069,216 @@ class ChatBubble {
     } catch (error) {
       if (error.name === "AbortError") return;
       this._hideThinkingIndicator();
-      this._addBotMessage(
+      this._showErrorToast(
         error.message || "Error al procesar el audio. Inténtalo de nuevo.",
-        true,
+      );
+    } finally {
+      this._setLoadingState(false);
+      this.activeRequest = null;
+      if (this.isOpen) this.input.focus();
+    }
+  }
+
+  // Gestionar adjuntos de imagen
+
+  // Validar y guardar la imagen elegida por el usuario
+  _handleFileSelected(e) {
+    const file = e.target.files && e.target.files[0];
+    // Permitir volver a elegir el mismo archivo más adelante
+    e.target.value = "";
+
+    if (!file) return;
+    this._processAttachedImage(file);
+  }
+
+  // Capturar imágenes pegadas con Ctrl+V (p. ej. una captura de pantalla)
+  _handlePaste(e) {
+    if (this.isLoading || this.isRecording) return;
+
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          // Evitar que el navegador pegue el nombre del archivo como texto
+          e.preventDefault();
+          this._processAttachedImage(file);
+        }
+        break;
+      }
+    }
+  }
+
+  // Validar una imagen (de archivo o portapapeles) y dejarla lista para enviar
+  _processAttachedImage(file) {
+    const type = (file.type || "").toLowerCase();
+    const name = (file.name || "").toLowerCase();
+
+    // Rechazar video, incluso si llega con un tipo MIME no estándar
+    if (type.startsWith("video/") || /\.(mp4|mov|avi|webm|mkv|3gp)$/.test(name)) {
+      this._showErrorToast("No se permiten archivos de video.");
+      return;
+    }
+
+    // Rechazar GIF explícitamente: el análisis de imágenes del bot no lo soporta
+    if (type === "image/gif" || name.endsWith(".gif")) {
+      this._showErrorToast(
+        "Los archivos GIF no son compatibles. Usa JPG, PNG o WEBP.",
+      );
+      return;
+    }
+
+    if (!type.startsWith("image/")) {
+      this._showErrorToast("Solo se permiten archivos de imagen.");
+      return;
+    }
+
+    const maxMB = this.config.behavior.maxImageSizeMB || 5;
+    if (file.size > maxMB * 1024 * 1024) {
+      this._showErrorToast(
+        `La imagen supera el tamaño máximo permitido (${maxMB}MB).`,
+      );
+      return;
+    }
+
+    this.pendingImage = file;
+    this._showAttachmentPreview(file);
+    this._updateSendButtonState();
+    this.input.focus();
+  }
+
+  // Mostrar miniatura de la imagen adjunta sobre el input
+  _showAttachmentPreview(file) {
+    if (this._attachmentPreviewUrl) {
+      URL.revokeObjectURL(this._attachmentPreviewUrl);
+    }
+    const url = URL.createObjectURL(file);
+    this._attachmentPreviewUrl = url;
+
+    this.attachmentThumb.style.backgroundImage = `url("${url}")`;
+    this.attachmentName.textContent = file.name || "Imagen";
+    this.attachmentPreview.classList.add("cb-visible");
+    this.attachmentPreview.setAttribute("aria-hidden", "false");
+  }
+
+  // Descartar la imagen adjunta pendiente de envío
+  _clearPendingImage() {
+    this.pendingImage = null;
+    if (this._attachmentPreviewUrl) {
+      URL.revokeObjectURL(this._attachmentPreviewUrl);
+      this._attachmentPreviewUrl = null;
+    }
+    if (this.attachmentThumb) this.attachmentThumb.style.backgroundImage = "";
+    if (this.attachmentName) this.attachmentName.textContent = "";
+    if (this.attachmentPreview) {
+      this.attachmentPreview.classList.remove("cb-visible");
+      this.attachmentPreview.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  // Insertar imagen enviada por el usuario en el chat
+  async _addUserImageMessage(
+    fileOrBlob,
+    caption = "",
+    dateObj = new Date(),
+    save = true,
+  ) {
+    if (this.activeTyping) this.activeTyping.complete();
+    this._hideEmptyState();
+    this._checkDateDivider(dateObj);
+
+    const message = document.createElement("div");
+    message.className = "cb-message cb-message--user";
+
+    const content = document.createElement("div");
+    content.className = "cb-message-content cb-image-message";
+
+    // Mostrar la imagen mediante una URL temporal de objeto
+    const imageUrl = URL.createObjectURL(fileOrBlob);
+    const img = document.createElement("img");
+    img.src = imageUrl;
+    img.alt = caption || "Imagen enviada";
+    img.className = "cb-image-message-img";
+    img.loading = "lazy";
+    img.addEventListener("load", () => URL.revokeObjectURL(imageUrl), {
+      once: true,
+    });
+    content.appendChild(img);
+
+    if (caption) {
+      const captionEl = document.createElement("p");
+      captionEl.className = "cb-image-message-caption";
+      captionEl.textContent = caption;
+      content.appendChild(captionEl);
+    }
+
+    message.appendChild(content);
+
+    if (this.config.behavior.showTimestamps) {
+      const time = document.createElement("span");
+      time.className = "cb-message-time";
+      time.textContent = this._getTimeString(dateObj);
+      message.appendChild(time);
+    }
+
+    this.messagesContainer.insertBefore(message, this.typingIndicator);
+    this.messageCount++;
+
+    if (save) {
+      try {
+        const base64Image = await blobToBase64(fileOrBlob);
+        this.chatHistory.push({
+          role: "user",
+          isImage: true,
+          imageData: base64Image,
+          mimeType: fileOrBlob.type || "image/*",
+          fileName: fileOrBlob.name || "",
+          caption: caption || "",
+          date: dateObj.toISOString(),
+        });
+        saveChatHistory(this.chatHistory, this.sessionId);
+        saveSessionToIndex(
+          this.sessionId,
+          this._getHistoryTitle(),
+          this.chatHistory.length,
+        );
+      } catch (err) {
+        console.error("Error guardando historial de imagen", err);
+      }
+    }
+
+    this._scrollToBottom();
+  }
+
+  // Transmitir archivo de imagen al servidor
+  async _sendImageToWebhook(file, caption) {
+    if (this.activeRequest) this.activeRequest.abort();
+    this.activeRequest = new AbortController();
+
+    this._showThinkingIndicator("Analizando imagen...");
+    this._setLoadingState(true);
+
+    try {
+      const result = await sendImageMessage(
+        this.config.webhook.url,
+        file,
+        this.sessionId,
+        caption,
+        {},
+        this.config.behavior.requestTimeout,
+        this.activeRequest.signal,
+      );
+
+      if (result.sessionId) this.sessionId = result.sessionId;
+
+      this._addBotMessage(result.output || "");
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      this._hideThinkingIndicator();
+      this._showErrorToast(
+        error.message || "Error al procesar la imagen. Inténtalo de nuevo.",
       );
     } finally {
       this._setLoadingState(false);
@@ -2094,7 +2289,7 @@ class ChatBubble {
 
   // Obtener título para el índice derivado del primer mensaje de usuario
   _getHistoryTitle() {
-    const firstUserMsg = this.chatHistory.find(m => m.role === "user");
+    const firstUserMsg = this.chatHistory.find((m) => m.role === "user");
     return firstUserMsg ? firstUserMsg.text : "Conversación 1";
   }
 
@@ -2126,7 +2321,8 @@ class ChatBubble {
 
   // Abrir o cerrar el dropdown de acciones del header
   _toggleActionsMenu() {
-    const isOpen = this.actionsMenu && !this.actionsMenu.classList.contains("cb-is-hidden");
+    const isOpen =
+      this.actionsMenu && !this.actionsMenu.classList.contains("cb-is-hidden");
     if (isOpen) {
       this._closeActionsMenu();
     } else {
@@ -2156,7 +2352,9 @@ class ChatBubble {
   _openHistoryPanel() {
     // Usar offsetTop/clientHeight para que sea inmune al movimiento de la ventana
     const top = this.messagesContainer.offsetTop;
-    const bottom = this.window.clientHeight - (this.messagesContainer.offsetTop + this.messagesContainer.clientHeight);
+    const bottom =
+      this.window.clientHeight -
+      (this.messagesContainer.offsetTop + this.messagesContainer.clientHeight);
 
     this.historyPanel.style.top = `${top}px`;
     this.historyPanel.style.bottom = `${Math.max(0, bottom)}px`;
@@ -2179,7 +2377,7 @@ class ChatBubble {
     this.historyPanel.setAttribute("aria-hidden", "true");
     this.messagesContainer.classList.remove("cb-history-active");
     if (this.actionsBtn) this.actionsBtn.classList.remove("cb-is-active");
-    
+
     // Restaurar estado del botón de scroll si es necesario
     this._handleScroll();
   }
@@ -2187,7 +2385,9 @@ class ChatBubble {
   // Renderizar la lista de sesiones guardadas agrupadas por fecha
   _renderHistoryPanel() {
     // Excluir la sesión activa del historial
-    const sessions = getSessionsIndex().filter(s => s.sessionId !== this.sessionId);
+    const sessions = getSessionsIndex().filter(
+      (s) => s.sessionId !== this.sessionId,
+    );
 
     if (this.historyTitle) {
       this.historyTitle.textContent = sessions.length
@@ -2214,7 +2414,11 @@ class ChatBubble {
 
     // Agrupar por fecha
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const startOfYesterday = new Date(startOfToday);
     startOfYesterday.setDate(startOfYesterday.getDate() - 1);
     const startOfWeek = new Date(startOfToday);
@@ -2227,7 +2431,7 @@ class ChatBubble {
       { label: "Más antiguas", items: [] },
     ];
 
-    sessions.forEach(session => {
+    sessions.forEach((session) => {
       const d = new Date(session.lastUserMessageAt || session.lastMessageAt);
       const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       if (dayStart >= startOfToday) groups[0].items.push(session);
@@ -2236,7 +2440,7 @@ class ChatBubble {
       else groups[3].items.push(session);
     });
 
-    groups.forEach(group => {
+    groups.forEach((group) => {
       if (group.items.length === 0) return;
 
       const label = document.createElement("div");
@@ -2244,7 +2448,7 @@ class ChatBubble {
       label.textContent = group.label;
       this.historyList.appendChild(label);
 
-      group.items.forEach(session => {
+      group.items.forEach((session) => {
         this.historyList.appendChild(this._buildHistoryItem(session));
       });
     });
@@ -2260,12 +2464,21 @@ class ChatBubble {
 
     // Vista previa: último mensaje del bot, sin markdown
     const sessionHistory = getHistoryBySessionId(session.sessionId);
-    const lastBotMsg = [...sessionHistory].reverse().find(m => m.role === "bot");
+    const lastBotMsg = [...sessionHistory]
+      .reverse()
+      .find((m) => m.role === "bot");
     const previewText = lastBotMsg
-      ? lastBotMsg.text.replace(/[*_~`#>|[\]!]/g, "").replace(/\s+/g, " ").trim().slice(0, 200)
+      ? lastBotMsg.text
+          .replace(/[*_~`#>|[\]!]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 200)
       : "";
 
-    const countText = session.messageCount === 1 ? "1 mensaje" : `${session.messageCount} mensajes`;
+    const countText =
+      session.messageCount === 1
+        ? "1 mensaje"
+        : `${session.messageCount} mensajes`;
 
     item.innerHTML = `
       <div class="cb-history-item-content">
@@ -2292,11 +2505,17 @@ class ChatBubble {
     });
 
     item.addEventListener("keydown", (e) => {
-      if ((e.key === "Enter" || e.key === " ") && !item.classList.contains("cb-history-item--confirming")) {
+      if (
+        (e.key === "Enter" || e.key === " ") &&
+        !item.classList.contains("cb-history-item--confirming")
+      ) {
         e.preventDefault();
         this._loadSession(session.sessionId);
       }
-      if (e.key === "Escape" && item.classList.contains("cb-history-item--confirming")) {
+      if (
+        e.key === "Escape" &&
+        item.classList.contains("cb-history-item--confirming")
+      ) {
         this._cancelDeleteSession(item);
       }
     });
@@ -2321,17 +2540,24 @@ class ChatBubble {
 
     item.appendChild(confirmEl);
 
-    confirmEl.querySelector(".cb-history-item-confirm-yes").addEventListener("click", (e) => {
-      e.stopPropagation();
-      this._deleteSession(sessionId, item);
-    });
+    confirmEl
+      .querySelector(".cb-history-item-confirm-yes")
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._deleteSession(sessionId, item);
+      });
 
-    confirmEl.querySelector(".cb-history-item-confirm-no").addEventListener("click", (e) => {
-      e.stopPropagation();
-      this._cancelDeleteSession(item);
-    });
+    confirmEl
+      .querySelector(".cb-history-item-confirm-no")
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._cancelDeleteSession(item);
+      });
 
-    setTimeout(() => confirmEl.querySelector(".cb-history-item-confirm-no").focus(), 0);
+    setTimeout(
+      () => confirmEl.querySelector(".cb-history-item-confirm-no").focus(),
+      0,
+    );
   }
 
   // Cancelar confirmación de borrado
@@ -2347,7 +2573,11 @@ class ChatBubble {
 
     // Guardar el estado de la sesión actual antes de cambiar
     if (this.chatHistory && this.chatHistory.length > 0) {
-      saveSessionToIndex(this.sessionId, this._getHistoryTitle(), this.chatHistory.length);
+      saveSessionToIndex(
+        this.sessionId,
+        this._getHistoryTitle(),
+        this.chatHistory.length,
+      );
     }
 
     this.sessionId = sessionId;
@@ -2362,10 +2592,10 @@ class ChatBubble {
     }
 
     this._closeHistoryPanel();
-    
+
     // Guardar el sessionId activo en localStorage
     setActiveSessionId(sessionId);
-    
+
     this.input.focus();
   }
 
@@ -2399,18 +2629,28 @@ class ChatBubble {
     // Forzar reflow para que la transición de entrada se anime
     void this.clearAllOverlay.offsetWidth;
     this.clearAllOverlay.classList.add("cb-is-active");
-    setTimeout(() => this.clearAllCancelBtn && this.clearAllCancelBtn.focus(), 0);
+    setTimeout(
+      () => this.clearAllCancelBtn && this.clearAllCancelBtn.focus(),
+      0,
+    );
   }
 
   // Cerrar el modal de confirmación de borrado total
   _closeClearAllModal() {
-    if (!this.clearAllOverlay || !this.clearAllOverlay.classList.contains("cb-is-active")) return;
+    if (
+      !this.clearAllOverlay ||
+      !this.clearAllOverlay.classList.contains("cb-is-active")
+    )
+      return;
     this.clearAllOverlay.classList.remove("cb-is-active");
     this.clearAllOverlay.setAttribute("aria-hidden", "true");
     const onTransitionEnd = (e) => {
       if (e.target !== this.clearAllOverlay) return;
       this.clearAllOverlay.classList.add("cb-is-hidden");
-      this.clearAllOverlay.removeEventListener("transitionend", onTransitionEnd);
+      this.clearAllOverlay.removeEventListener(
+        "transitionend",
+        onTransitionEnd,
+      );
     };
     this.clearAllOverlay.addEventListener("transitionend", onTransitionEnd);
     if (this.historyClearBtn) this.historyClearBtn.focus();
@@ -2418,20 +2658,26 @@ class ChatBubble {
 
   // Eliminar todas las conversaciones con animación escalonada
   _clearAllSessions() {
-    const sessions = getSessionsIndex().filter(s => s.sessionId !== this.sessionId);
-    const items = Array.from(this.historyList.querySelectorAll(".cb-history-item"));
+    const sessions = getSessionsIndex().filter(
+      (s) => s.sessionId !== this.sessionId,
+    );
+    const items = Array.from(
+      this.historyList.querySelectorAll(".cb-history-item"),
+    );
 
     // Ocultar footer inmediatamente para evitar doble render
     if (this.historyFooter) this.historyFooter.classList.add("cb-is-hidden");
 
     // Desvanecer etiquetas de grupo
-    this.historyList.querySelectorAll(".cb-history-group-label").forEach(label => {
-      label.style.transition = "opacity 0.15s ease";
-      label.style.opacity = "0";
-    });
+    this.historyList
+      .querySelectorAll(".cb-history-group-label")
+      .forEach((label) => {
+        label.style.transition = "opacity 0.15s ease";
+        label.style.opacity = "0";
+      });
 
     if (items.length === 0) {
-      sessions.forEach(s => deleteSessionFromIndex(s.sessionId));
+      sessions.forEach((s) => deleteSessionFromIndex(s.sessionId));
       this._renderHistoryPanel();
       return;
     }
@@ -2443,10 +2689,14 @@ class ChatBubble {
     });
 
     // Esperar al último ítem y luego borrar + re-renderizar
-    items[items.length - 1].addEventListener("animationend", () => {
-      sessions.forEach(s => deleteSessionFromIndex(s.sessionId));
-      this._renderHistoryPanel();
-    }, { once: true });
+    items[items.length - 1].addEventListener(
+      "animationend",
+      () => {
+        sessions.forEach((s) => deleteSessionFromIndex(s.sessionId));
+        this._renderHistoryPanel();
+      },
+      { once: true },
+    );
   }
 }
 
