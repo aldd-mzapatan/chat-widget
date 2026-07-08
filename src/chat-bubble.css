@@ -83,7 +83,9 @@
   --cb-window-height: 690px;
   --cb-launcher-size: 52px;
   --cb-spacing: 16px;
-  --cb-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --cb-font:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
   --cb-transition: 0.22s var(--cb-ease-standard);
   --cb-z-index: 9999;
 
@@ -257,7 +259,6 @@
   left: var(--cb-launcher-offset);
 }
 
-
 .cb-launcher-btn {
   width: var(--cb-launcher-size);
   height: var(--cb-launcher-size);
@@ -404,18 +405,42 @@
 }
 
 @keyframes cb-sparkle-pro {
-  0%   { opacity: 0;    transform: scale(0.3) rotate(-10deg); }
-  15%  { opacity: 0;    transform: scale(0.3) rotate(-10deg); }
-  40%  { opacity: 0.95; transform: scale(1.15) rotate(15deg); }
-  60%  { opacity: 0.7;  transform: scale(1.0)  rotate(8deg);  }
-  80%  { opacity: 0;    transform: scale(0.4)  rotate(20deg); }
-  100% { opacity: 0;    transform: scale(0.3)  rotate(-10deg); }
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
+  15% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
+  40% {
+    opacity: 0.95;
+    transform: scale(1.15) rotate(15deg);
+  }
+  60% {
+    opacity: 0.7;
+    transform: scale(1) rotate(8deg);
+  }
+  80% {
+    opacity: 0;
+    transform: scale(0.4) rotate(20deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
 }
 
 /* Hover: aceleración sutil sin filtros adicionales */
-.cb-launcher-btn:hover .cb-sparkle--1 { animation-duration: 1.4s; }
-.cb-launcher-btn:hover .cb-sparkle--3 { animation-duration: 1.6s; }
-.cb-launcher-btn:hover .cb-sparkle--5 { animation-duration: 1.2s; }
+.cb-launcher-btn:hover .cb-sparkle--1 {
+  animation-duration: 1.4s;
+}
+.cb-launcher-btn:hover .cb-sparkle--3 {
+  animation-duration: 1.6s;
+}
+.cb-launcher-btn:hover .cb-sparkle--5 {
+  animation-duration: 1.2s;
+}
 
 /* Estado abierto: apagar sparkles */
 .cb-launcher-btn.cb-is-open .cb-sparkle {
@@ -511,7 +536,12 @@
       rgba(255, 255, 255, 0.12) 0%,
       transparent 65%
     ),
-    linear-gradient(to right, var(--cb-primary-hover) 0%, var(--cb-primary) 28%, #7a44b8 100%);
+    linear-gradient(
+      to right,
+      var(--cb-primary-hover) 0%,
+      var(--cb-primary) 28%,
+      #7a44b8 100%
+    );
   color: var(--cb-primary-text);
   flex-shrink: 0;
   border-radius: var(--cb-radius) var(--cb-radius) 0 0;
@@ -522,7 +552,6 @@
   user-select: none;
   touch-action: none;
 }
-
 
 .cb-header-info {
   display: flex;
@@ -578,7 +607,6 @@
   opacity: 0.72;
   margin-top: 2px;
 }
-
 
 .cb-header-actions {
   display: flex;
@@ -1091,8 +1119,12 @@
 }
 
 @keyframes cb-cursor-blink {
-  0% { opacity: 0.1; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Diseñar zona inferior de composición de texto */
@@ -1606,6 +1638,12 @@
   width: 100%;
   max-width: 100%;
   border-radius: 20px;
+  cursor: pointer;
+}
+
+/* Imagen clicable enviada por el bot vía markdown */
+.cb-image {
+  cursor: pointer;
 }
 
 .cb-image-message-caption {
@@ -1830,7 +1868,6 @@
   display: inline-block;
   letter-spacing: 0.3px;
 }
-
 
 @keyframes cb-shimmer-text {
   to {
@@ -2165,9 +2202,16 @@
   scrollbar-color: var(--cb-scrollbar-color) var(--cb-scrollbar-track);
 }
 
-.cb-history-list::-webkit-scrollbar { width: var(--cb-scrollbar-width); }
-.cb-history-list::-webkit-scrollbar-track { background: var(--cb-scrollbar-track); }
-.cb-history-list::-webkit-scrollbar-thumb { background: var(--cb-scrollbar-color); border-radius: 100px; }
+.cb-history-list::-webkit-scrollbar {
+  width: var(--cb-scrollbar-width);
+}
+.cb-history-list::-webkit-scrollbar-track {
+  background: var(--cb-scrollbar-track);
+}
+.cb-history-list::-webkit-scrollbar-thumb {
+  background: var(--cb-scrollbar-color);
+  border-radius: 100px;
+}
 
 /* Etiqueta de grupo de fecha */
 .cb-history-group-label {
@@ -2245,8 +2289,14 @@
 }
 
 @keyframes cb-confirm-fade-in {
-  from { opacity: 0; transform: translateX(6px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .cb-history-item-confirm-text {
@@ -2270,7 +2320,9 @@
   border-radius: 6px;
   padding: 4px 12px;
   cursor: pointer;
-  transition: background var(--cb-transition), color var(--cb-transition);
+  transition:
+    background var(--cb-transition),
+    color var(--cb-transition);
 }
 
 .cb-history-item-confirm-no {
@@ -2395,13 +2447,23 @@
 
 /* Animación de barrido al eliminar un ítem */
 @keyframes cb-item-swipe-out {
-  0%   { transform: translateX(0);     opacity: 1; }
-  25%  { transform: translateX(-6px);  opacity: 1; }
-  100% { transform: translateX(110%);  opacity: 0; }
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  25% {
+    transform: translateX(-6px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(110%);
+    opacity: 0;
+  }
 }
 
 .cb-history-item--removing {
-  animation: cb-item-swipe-out 0.32s cubic-bezier(0.55, 0, 0.75, 0.1) var(--cb-swipe-delay, 0ms) both;
+  animation: cb-item-swipe-out 0.32s cubic-bezier(0.55, 0, 0.75, 0.1)
+    var(--cb-swipe-delay, 0ms) both;
   pointer-events: none;
 }
 
@@ -2555,4 +2617,108 @@
   opacity: 0.7;
   margin: 0;
   line-height: 1.5;
+}
+
+/* Lightbox: vista ampliada de imágenes ya publicadas en la conversación */
+.cb-lightbox-dialog {
+  margin: auto;
+  position: fixed;
+  inset: 0;
+  background-color: transparent;
+  border: none;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    display 0.25s ease allow-discrete,
+    overlay 0.25s ease allow-discrete;
+  z-index: calc(var(--cb-z-index) + 10);
+}
+
+.cb-lightbox-dialog:not([open]) {
+  pointer-events: none;
+}
+
+.cb-lightbox-dialog[open] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+  transform: scale(1);
+}
+
+
+.cb-lightbox-dialog::backdrop {
+  background-color: rgba(20, 16, 32, 0.6);
+  -webkit-backdrop-filter: blur(0.25rem);
+  backdrop-filter: blur(0.25rem);
+  opacity: 0;
+  transition:
+    opacity 0.25s ease,
+    backdrop-filter 0.25s ease,
+    display 0.25s ease allow-discrete,
+    overlay 0.25s ease allow-discrete;
+}
+
+.cb-lightbox-dialog[open]::backdrop {
+  opacity: 1;
+}
+
+
+/* Fallback for browsers (like Firefox) that don't support @starting-style */
+.cb-lightbox-dialog[open].is-opening {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.cb-lightbox-dialog[open].is-opening::backdrop {
+  opacity: 0;
+}
+
+.cb-lightbox-dialog.is-closing {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.cb-lightbox-dialog.is-closing::backdrop {
+  opacity: 0;
+}
+
+.cb-lightbox-dialog img {
+  max-width: 80vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: var(--cb-radius, 12px);
+  box-shadow: var(--cb-shadow);
+}
+
+.cb-lightbox-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 50%;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  z-index: 10;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.cb-lightbox-close-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
 }

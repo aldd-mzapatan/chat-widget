@@ -104,6 +104,11 @@ const ICONS = {
   moreHorizontal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
     <path d="M6 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM21 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/>
   </svg>`,
+
+  lightboxClose: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>`,
 };
 
 // Declarar configuración predeterminada del sistema
@@ -396,9 +401,21 @@ class ChatBubble {
       </div>
     `;
 
+    // Construir diálogo de vista ampliada de imagen (lightbox)
+    const lightboxDialog = document.createElement("dialog");
+    lightboxDialog.className = "cb-lightbox-dialog";
+    lightboxDialog.setAttribute("aria-label", "Vista ampliada de imagen");
+    lightboxDialog.innerHTML = `
+      <button class="cb-lightbox-close-btn" aria-label="Cerrar imagen" title="Cerrar">
+        ${ICONS.lightboxClose}
+      </button>
+      <img src="" alt="" class="cb-lightbox-image" />
+    `;
+
     // Insertar elementos en Shadow DOM
     this.shadowRoot.appendChild(this.launcher);
     this.shadowRoot.appendChild(this.window);
+    this.shadowRoot.appendChild(lightboxDialog);
 
     const launcherContainer = this.launcher.querySelector(
       "#cb-launcher-icon-container",
@@ -509,6 +526,67 @@ class ChatBubble {
     }
 
     this._updateSendButtonState();
+    this._initLightbox();
+  }
+
+  // Configurar el lightbox de vista ampliada para imágenes ya publicadas en la conversación
+  _initLightbox() {
+    this.lightboxDialog = this.shadowRoot.querySelector(".cb-lightbox-dialog");
+    this.lightboxImg = this.shadowRoot.querySelector(".cb-lightbox-image");
+
+    // Interceptar Escape para disparar la animación de cierre en vez de un cierre abrupto
+    this.lightboxDialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      this._closeLightbox();
+    });
+
+    this.shadowRoot.addEventListener("click", (e) => {
+      const target = e.target;
+
+      if (
+        target.tagName === "IMG" &&
+        (target.classList.contains("cb-image") ||
+          target.classList.contains("cb-image-message-img"))
+      ) {
+        // Dejar pasar el click si la imagen está envuelta en un enlace
+        if (target.closest("a")) return;
+        this._openLightbox(target.src, target.alt);
+        e.preventDefault();
+        return;
+      }
+
+      if (this.lightboxDialog.open) {
+        if (target.closest(".cb-lightbox-close-btn")) {
+          this._closeLightbox();
+          return;
+        }
+        // Cerrar al hacer clic en el backdrop (el propio <dialog>)
+        if (target === this.lightboxDialog) {
+          this._closeLightbox();
+          return;
+        }
+      }
+    });
+  }
+
+  _openLightbox(src, alt) {
+    this.lightboxImg.src = src;
+    this.lightboxImg.alt = alt || "Imagen ampliada";
+    this.lightboxDialog.showModal();
+  }
+
+  _closeLightbox() {
+    if (
+      !this.lightboxDialog.open ||
+      this.lightboxDialog.classList.contains("is-closing")
+    )
+      return;
+    this.lightboxDialog.classList.add("is-closing");
+    setTimeout(() => {
+      this.lightboxDialog.close();
+      this.lightboxDialog.classList.remove("is-closing");
+      this.lightboxImg.src = "";
+    }, 280);
   }
 
   _applyConfig() {
@@ -1321,13 +1399,13 @@ class ChatBubble {
     video.tabIndex = -1;
     avatarWrap.appendChild(video);
 
-    // Al terminar vuelve al inicio y repite
+    // Reiniciar y repetir al terminar
     video.addEventListener("ended", () => {
       video.currentTime = 0;
       video.play().catch(() => {});
     });
 
-    // Arranca en cuanto el navegador tiene suficientes datos
+    // Arrancar en cuanto el navegador tenga suficientes datos
     video.addEventListener(
       "canplay",
       () => {
@@ -1827,7 +1905,7 @@ class ChatBubble {
     this._updateSendButtonState();
   }
 
-  /** Muestra la UI de grabación sobre el área de input */
+  // Mostrar la UI de grabación sobre el área de input
   _showRecordingUI() {
     // Esconder controles estándar del área de texto
     this.input.style.visibility = "hidden";
@@ -2196,15 +2274,13 @@ class ChatBubble {
     content.className = "cb-message-content cb-image-message";
 
     // Mostrar la imagen mediante una URL temporal de objeto
+    // No revocar la URL tras la carga: el lightbox reabre este mismo blob al hacer clic
     const imageUrl = URL.createObjectURL(fileOrBlob);
     const img = document.createElement("img");
     img.src = imageUrl;
     img.alt = caption || "Imagen enviada";
     img.className = "cb-image-message-img";
     img.loading = "lazy";
-    img.addEventListener("load", () => URL.revokeObjectURL(imageUrl), {
-      once: true,
-    });
     content.appendChild(img);
 
     if (caption) {
