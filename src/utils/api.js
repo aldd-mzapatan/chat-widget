@@ -1,6 +1,6 @@
 // Configurar cliente HTTP para comunicación con webhook
 
-const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_TIMEOUT = 60000;
 const RETRY_DELAY = 1000;
 const MAX_RETRIES = 1;
 
