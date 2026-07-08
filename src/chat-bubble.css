@@ -1,8 +1,5 @@
 /* Inicializar estilos principales */
 
-/* Cargar tipografía base */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
-
 /* Declarar variables de diseño (colores, sombras, medidas) */
 :host {
   --cb-primary: #572b86;
@@ -283,6 +280,11 @@
   animation: cb-launcher-breathe 3s ease-in-out infinite;
 }
 
+/* Pausar la respiración mientras el chat está abierto: solo tiene sentido llamar la atención con el chat cerrado */
+.cb-launcher-btn.cb-is-open {
+  animation-play-state: paused;
+}
+
 /* Aura que respira: pulsa un anillo exterior con color primario sin escalar el botón */
 @keyframes cb-launcher-breathe {
   0%,
@@ -357,7 +359,7 @@
   transform: scale(1) rotate(0deg);
 }
 
-/* Estrellas IA (sparkles) — elementos decorativos alrededor del botón */
+/* Configurar estrellas IA (sparkles) como elementos decorativos alrededor del botón */
 .cb-sparkle {
   position: absolute;
   display: flex;
@@ -375,7 +377,7 @@
   filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 6px currentColor);
 }
 
-/* arriba-derecha */
+/* Posicionar arriba-derecha */
 .cb-sparkle--1 {
   width: 16px;
   height: 16px;
@@ -386,7 +388,7 @@
   animation-fill-mode: both;
 }
 
-/* abajo-izquierda */
+/* Posicionar abajo-izquierda */
 .cb-sparkle--3 {
   width: 9px;
   height: 9px;
@@ -397,7 +399,7 @@
   animation-fill-mode: both;
 }
 
-/* abajo-derecha */
+/* Posicionar abajo-derecha */
 .cb-sparkle--5 {
   width: 11px;
   height: 11px;
@@ -435,7 +437,7 @@
   }
 }
 
-/* Hover: aceleración sutil sin filtros adicionales */
+/* Aplicar hover con aceleración sutil sin filtros adicionales */
 .cb-launcher-btn:hover .cb-sparkle--1 {
   animation-duration: 1.4s;
 }
@@ -446,9 +448,10 @@
   animation-duration: 1.2s;
 }
 
-/* Estado abierto: apagar sparkles */
+/* Configurar estado abierto: apagar sparkles y detener su animación (no solo ocultarla) */
 .cb-launcher-btn.cb-is-open .cb-sparkle {
   opacity: 0 !important;
+  animation-play-state: paused;
   transition: opacity 0.18s ease;
 }
 
@@ -534,18 +537,31 @@
   align-items: center;
   justify-content: space-between;
   padding: 7px var(--cb-spacing);
-  background:
+  background-image:
     radial-gradient(
       ellipse 55% 130% at 78% 50%,
       rgba(255, 255, 255, 0.12) 0%,
       transparent 65%
     ),
     linear-gradient(
-      to right,
+      100deg,
       var(--cb-primary-hover) 0%,
-      var(--cb-primary) 28%,
-      #7a44b8 100%
+      #633397 18%,
+      #783eb5 25%,
+      #633397 32%,
+      var(--cb-primary-hover) 50%,
+      #633397 68%,
+      #783eb5 75%,
+      #633397 82%,
+      var(--cb-primary-hover) 100%
     );
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    450% 100%;
+  background-position:
+    0% 0%,
+    0% 0%;
   color: var(--cb-primary-text);
   flex-shrink: 0;
   border-radius: var(--cb-radius) var(--cb-radius) 0 0;
@@ -555,6 +571,57 @@
   -webkit-user-select: none;
   user-select: none;
   touch-action: none;
+  /* Correr animación solo cuando el chat está abierto (ver .cb-is-open) para no repintar en la página anfitriona mientras nadie lo ve */
+  animation: cb-header-gradient-flow 8s linear infinite paused;
+}
+
+/* Reanudar la animación del degradado únicamente con el chat abierto */
+#chat-bubble-window.cb-is-open .cb-header {
+  animation-play-state: running;
+}
+
+/* Animar en bucle continuo */
+@keyframes cb-header-gradient-flow {
+  0% {
+    background-position:
+      0% 0%,
+      0% 0%;
+  }
+  100% {
+    background-position:
+      0% 0%,
+      64.2857% 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-header {
+    animation: none;
+    background-position:
+      0% 0%,
+      50% 0%;
+  }
+
+  .cb-launcher-btn,
+  .cb-sparkle--1,
+  .cb-sparkle--3,
+  .cb-sparkle--5,
+  .cb-typing-indicator:not(.cb-thinking) span,
+  .cb-recording-dot {
+    animation: none;
+  }
+
+  .cb-streaming-cursor {
+    animation: none;
+    opacity: 1;
+  }
+
+  .cb-thinking-text {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: var(--cb-text-secondary);
+    color: var(--cb-text-secondary);
+  }
 }
 
 .cb-header-info {
@@ -659,7 +726,7 @@
   height: var(--cb-icon-size-sm);
 }
 
-/* Dropdown de acciones del header */
+/* Diseñar dropdown de acciones del header */
 .cb-actions-dropdown {
   position: relative;
 }
@@ -1292,7 +1359,7 @@
   color: var(--cb-primary);
 }
 
-/* Video en bucle mostrado al pasar el cursor sobre el avatar de presentación */
+/* Mostrar video en bucle al pasar el cursor sobre el avatar de presentación */
 .cb-agent-intro-video {
   position: absolute;
   inset: 0;
@@ -1354,29 +1421,6 @@
     var(--cb-border),
     transparent
   );
-}
-
-/* Configurar animación de carga (skeleton loading) */
-.cb-skeleton {
-  height: 13px;
-  border-radius: 7px;
-  background: linear-gradient(
-    90deg,
-    var(--cb-border) 25%,
-    rgba(87, 43, 134, 0.08) 50%,
-    var(--cb-border) 75%
-  );
-  background-size: 200% 100%;
-  animation: cb-skeleton-shimmer 1.6s infinite;
-}
-
-@keyframes cb-skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
 }
 
 /* Ajustar diseño para dispositivos móviles */
@@ -1650,12 +1694,12 @@
   cursor: pointer;
 }
 
-/* Imagen clicable enviada por el bot vía markdown */
+/* Estilizar imagen clicable enviada por el bot vía markdown */
 .cb-image {
   cursor: pointer;
 }
 
-/* Burbuja propia para el texto, ya que el contenedor de la imagen es transparente */
+/* Configurar burbuja propia para el texto, ya que el contenedor de la imagen es transparente */
 .cb-image-message-caption {
   margin: 6px 0 0;
   padding: 8px 12px;
@@ -2227,7 +2271,7 @@
   border-radius: 100px;
 }
 
-/* Etiqueta de grupo de fecha */
+/* Formatear etiqueta de grupo de fecha */
 .cb-history-group-label {
   font-family: var(--cb-font);
   font-size: 10.5px;
@@ -2274,7 +2318,7 @@
   pointer-events: none;
 }
 
-/* Estado de confirmación de borrado */
+/* Diseñar estado de confirmación de borrado */
 .cb-history-item--confirming {
   background: var(--cb-bg) !important;
   cursor: default;
@@ -2459,7 +2503,7 @@
   height: 15px;
 }
 
-/* Animación de barrido al eliminar un ítem */
+/* Aplicar animación de barrido al eliminar un ítem */
 @keyframes cb-item-swipe-out {
   0% {
     transform: translateX(0);
@@ -2481,7 +2525,7 @@
   pointer-events: none;
 }
 
-/* Footer con acción global de borrado */
+/* Estilizar footer con acción global de borrado */
 .cb-history-panel-footer.cb-is-hidden {
   display: none;
 }
@@ -2527,7 +2571,7 @@
   flex-shrink: 0;
 }
 
-/* Modal superpuesto de confirmación para "Borrar todo" */
+/* Diseñar modal superpuesto de confirmación para "Borrar todo" */
 .cb-clear-all-overlay {
   position: absolute;
   inset: 0;
@@ -2592,7 +2636,7 @@
   font-size: 12.5px;
 }
 
-/* Estado vacío mejorado */
+/* Configurar estado vacío mejorado */
 .cb-history-empty {
   display: flex;
   flex-direction: column;
@@ -2633,7 +2677,7 @@
   line-height: 1.5;
 }
 
-/* Lightbox: vista ampliada de imágenes ya publicadas en la conversación */
+/* Diseñar lightbox para vista ampliada de imágenes ya publicadas en la conversación */
 .cb-lightbox-dialog {
   margin: auto;
   position: fixed;
@@ -2668,7 +2712,6 @@
   transform: scale(1);
 }
 
-
 .cb-lightbox-dialog::backdrop {
   background-color: rgba(20, 16, 32, 0.6);
   -webkit-backdrop-filter: blur(0.25rem);
@@ -2685,8 +2728,7 @@
   opacity: 1;
 }
 
-
-/* Fallback for browsers (like Firefox) that don't support @starting-style */
+/* Proveer fallback para navegadores (como Firefox) que no soportan @starting-style */
 .cb-lightbox-dialog[open].is-opening {
   opacity: 0;
   transform: scale(0.92);
@@ -2737,7 +2779,7 @@
   background: rgba(255, 255, 255, 0.28);
 }
 
-/* Zona de arrastrar y soltar una imagen sobre la ventana del chat */
+/* Diseñar zona de arrastrar y soltar una imagen sobre la ventana del chat */
 .cb-dropzone-overlay {
   position: absolute;
   inset: 0;

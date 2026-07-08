@@ -486,7 +486,7 @@ class ChatBubble {
     this.replyCancelBtn = this.shadowRoot.getElementById("cb-reply-cancel");
     this.micBtn = this.shadowRoot.getElementById("cb-mic-btn");
 
-    // Referencias para el historial y acciones del header
+    // Almacenar referencias para el historial y acciones del header
     this.actionsBtn = this.shadowRoot.getElementById("cb-actions-btn");
     this.actionsMenu = this.shadowRoot.getElementById("cb-actions-menu");
     this.historyBtn = this.shadowRoot.getElementById("cb-history-btn");
@@ -681,7 +681,7 @@ class ChatBubble {
 
     this.sendBtn.addEventListener("click", () => this._handleSend());
 
-    // Dropdown de acciones del header
+    // Configurar dropdown de acciones del header
     if (this.actionsBtn) {
       this.actionsBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1007,6 +1007,11 @@ class ChatBubble {
 
     this._scrollToBottom();
 
+    // Reanudar el video del avatar si sigue visible dentro del scroll
+    if (this.avatarVideo && this._avatarVideoVisible) {
+      this.avatarVideo.play().catch(() => {});
+    }
+
     setTimeout(() => this.input.focus(), 300);
   }
 
@@ -1017,6 +1022,9 @@ class ChatBubble {
     this.launcherBtn.classList.remove("cb-is-open");
     this.launcherBtn.setAttribute("aria-expanded", "false");
     this.launcherBtn.setAttribute("aria-label", "Abrir chat");
+
+    // Pausar el video del avatar: no tiene sentido decodificarlo con el chat cerrado
+    this.avatarVideo?.pause();
   }
 
   // Administrar ciclo de vida de la sesión
@@ -1454,6 +1462,23 @@ class ChatBubble {
       },
       { once: true },
     );
+
+    // Pausar el video cuando no es visible (chat cerrado o desplazado fuera de la
+    // vista) para no seguir decodificando frames en segundo plano
+    this._avatarVideoObserver?.disconnect();
+    this._avatarVideoObserver = new IntersectionObserver(
+      ([entry]) => {
+        this._avatarVideoVisible = entry.isIntersecting;
+        if (entry.isIntersecting && this.isOpen) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { root: this.messagesContainer, threshold: 0 },
+    );
+    this._avatarVideoObserver.observe(video);
+    this.avatarVideo = video;
   }
 
   // Construir cabecera de presentación
@@ -2624,7 +2649,7 @@ class ChatBubble {
     item.setAttribute("tabindex", "0");
     item.dataset.sessionId = session.sessionId;
 
-    // Vista previa: último mensaje del bot, sin markdown
+    // Generar vista previa con el último mensaje del bot, sin markdown
     const sessionHistory = getHistoryBySessionId(session.sessionId);
     const lastBotMsg = [...sessionHistory]
       .reverse()
@@ -2862,7 +2887,7 @@ class ChatBubble {
   }
 }
 
-// Script de arranque automático
+// Ejecutar script de arranque automático
 function initChatBubble() {
   if (window.__chatBubbleInstance) return;
 
