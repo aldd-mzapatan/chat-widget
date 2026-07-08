@@ -7,6 +7,7 @@
   --cb-primary-text: #ffffff;
   --cb-primary-glow: rgba(87, 43, 134, 0.35);
   --cb-primary-soft: rgba(87, 43, 134, 0.12);
+  --cb-link-color: var(--cb-primary);
 
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
@@ -115,6 +116,7 @@
     --cb-bg: #1c1528;
     --cb-bg-secondary: #141020;
     --cb-attachment-bg: #2e2540;
+    --cb-link-color: #c4a6f5;
     --cb-text: #f0ecf8;
     --cb-text-secondary: #9b8fb0;
     --cb-border: rgba(87, 43, 134, 0.18);
@@ -154,6 +156,7 @@
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
   --cb-attachment-bg: #e6e3ef;
+  --cb-link-color: var(--cb-primary);
   --cb-text: #1a1025;
   --cb-text-secondary: #7c6d94;
   --cb-border: rgba(87, 43, 134, 0.14);
@@ -191,6 +194,7 @@
   --cb-bg: #1c1528;
   --cb-bg-secondary: #141020;
   --cb-attachment-bg: #2e2540;
+  --cb-link-color: #c4a6f5;
   --cb-text: #f0ecf8;
   --cb-text-secondary: #9b8fb0;
   --cb-border: rgba(87, 43, 134, 0.18);
@@ -1106,7 +1110,7 @@
 
 .cb-message-content .cb-inline-code {
   background: rgba(87, 43, 134, 0.1);
-  color: var(--cb-primary);
+  color: var(--cb-link-color);
   padding: 2px 6px;
   border-radius: 5px;
   font-size: 12.5px;
@@ -1121,7 +1125,7 @@
 }
 
 .cb-message-content .cb-link {
-  color: var(--cb-primary);
+  color: var(--cb-link-color);
   text-decoration: underline;
   text-decoration-color: rgba(87, 43, 134, 0.4);
   text-underline-offset: 3px;
@@ -1131,7 +1135,7 @@
 }
 
 .cb-message-content .cb-link:hover {
-  text-decoration-color: var(--cb-primary);
+  text-decoration-color: var(--cb-link-color);
 }
 
 .cb-message--user .cb-link {
