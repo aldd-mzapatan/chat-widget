@@ -1078,6 +1078,17 @@
   font-size: 14px;
 }
 
+/* Formatear línea separadora horizontal */
+.cb-message-content .cb-hr {
+  border: none;
+  border-top: 1px solid var(--cb-border);
+  margin: 12px 0;
+}
+
+.cb-message--user .cb-hr {
+  border-top-color: rgba(255, 255, 255, 0.25);
+}
+
 .cb-message-content .cb-code-block {
   background: var(--cb-code-bg);
   color: var(--cb-code-text);
