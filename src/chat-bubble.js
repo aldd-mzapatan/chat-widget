@@ -316,6 +316,13 @@ class ChatBubble {
       </div>
       <div class="cb-resize-handle" id="cb-resize-handle"></div>
 
+      <div class="cb-dropzone-overlay" id="cb-dropzone-overlay" aria-hidden="true">
+        <div class="cb-dropzone-content">
+          ${ICONS.attach}
+          <span>Suelta la imagen para adjuntarla</span>
+        </div>
+      </div>
+
       <div class="cb-messages" id="cb-messages-container" role="log" aria-live="polite" aria-label="Mensajes del chat">
         <div class="cb-message cb-message--bot cb-typing-wrapper" id="cb-typing">
           <div class="cb-msg-avatar">
@@ -366,7 +373,7 @@ class ChatBubble {
       </div>
 
       <div class="cb-attachment-preview" id="cb-attachment-preview" aria-hidden="true">
-        <div class="cb-attachment-thumb" id="cb-attachment-thumb"></div>
+        <div class="cb-attachment-thumb" id="cb-attachment-thumb" role="button" tabindex="0" aria-label="Ver imagen ampliada" title="Ver imagen ampliada"></div>
         <div class="cb-attachment-info">
           <span class="cb-attachment-name" id="cb-attachment-name"></span>
           <span class="cb-attachment-hint">Imagen adjunta</span>
@@ -455,6 +462,9 @@ class ChatBubble {
 
     this.toggleSizeBtn = this.shadowRoot.getElementById("cb-toggle-size-btn");
     this.resizeHandle = this.shadowRoot.getElementById("cb-resize-handle");
+    this.dropzoneOverlay = this.shadowRoot.getElementById(
+      "cb-dropzone-overlay",
+    );
     this.scrollBottomBtn = this.shadowRoot.getElementById(
       "cb-scroll-bottom-btn",
     );
@@ -527,9 +537,10 @@ class ChatBubble {
 
     this._updateSendButtonState();
     this._initLightbox();
+    this._initDropZone();
   }
 
-  // Configurar el lightbox de vista ampliada para imágenes ya publicadas en la conversación
+  // Configurar el lightbox de vista ampliada para imágenes del chat y la vista previa adjunta
   _initLightbox() {
     this.lightboxDialog = this.shadowRoot.querySelector(".cb-lightbox-dialog");
     this.lightboxImg = this.shadowRoot.querySelector(".cb-lightbox-image");
@@ -555,6 +566,18 @@ class ChatBubble {
         return;
       }
 
+      // Ampliar la miniatura de vista previa antes de enviarla
+      if (
+        target.closest(".cb-attachment-thumb") &&
+        this._attachmentPreviewUrl
+      ) {
+        this._openLightbox(
+          this._attachmentPreviewUrl,
+          "Vista previa de la imagen adjunta",
+        );
+        return;
+      }
+
       if (this.lightboxDialog.open) {
         if (target.closest(".cb-lightbox-close-btn")) {
           this._closeLightbox();
@@ -565,6 +588,21 @@ class ChatBubble {
           this._closeLightbox();
           return;
         }
+      }
+    });
+
+    // Permitir abrir la vista previa adjunta también desde el teclado (role="button")
+    this.shadowRoot.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (
+        e.target.closest(".cb-attachment-thumb") &&
+        this._attachmentPreviewUrl
+      ) {
+        e.preventDefault();
+        this._openLightbox(
+          this._attachmentPreviewUrl,
+          "Vista previa de la imagen adjunta",
+        );
       }
     });
   }
@@ -844,6 +882,7 @@ class ChatBubble {
       if (
         e.target.closest(".cb-toggle-size-btn") ||
         e.target.closest("#cb-resize-handle") ||
+        e.target.closest(".cb-toast-container") ||
         window.innerWidth <= 480
       ) {
         return;
@@ -2189,13 +2228,60 @@ class ChatBubble {
     }
   }
 
+  // Configurar arrastrar y soltar una imagen sobre la ventana del chat
+  _initDropZone() {
+    let dragCounter = 0;
+
+    const isFileDrag = (e) =>
+      e.dataTransfer &&
+      Array.from(e.dataTransfer.types || []).includes("Files");
+
+    this.window.addEventListener("dragenter", (e) => {
+      if (!isFileDrag(e) || this.isLoading || this.isRecording) return;
+      e.preventDefault();
+      dragCounter++;
+      this.dropzoneOverlay.classList.add("cb-visible");
+    });
+
+    this.window.addEventListener("dragover", (e) => {
+      if (!isFileDrag(e) || this.isLoading || this.isRecording) return;
+      // Prevenir el comportamiento por defecto del navegador (abrir el archivo)
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    });
+
+    this.window.addEventListener("dragleave", () => {
+      dragCounter = Math.max(0, dragCounter - 1);
+      if (dragCounter === 0)
+        this.dropzoneOverlay.classList.remove("cb-visible");
+    });
+
+    this.window.addEventListener("drop", (e) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragCounter = 0;
+      this.dropzoneOverlay.classList.remove("cb-visible");
+
+      if (this.isLoading || this.isRecording) return;
+      const files = Array.from(e.dataTransfer.files || []);
+      if (!files.length) return;
+
+      // Delegar la validación de tipo/tamaño a _processAttachedImage (mismo camino que el botón "+")
+      const file = files.find((f) => f.type.startsWith("image/")) || files[0];
+      this._processAttachedImage(file);
+    });
+  }
+
   // Validar una imagen (de archivo o portapapeles) y dejarla lista para enviar
   _processAttachedImage(file) {
     const type = (file.type || "").toLowerCase();
     const name = (file.name || "").toLowerCase();
 
     // Rechazar video, incluso si llega con un tipo MIME no estándar
-    if (type.startsWith("video/") || /\.(mp4|mov|avi|webm|mkv|3gp)$/.test(name)) {
+    if (
+      type.startsWith("video/") ||
+      /\.(mp4|mov|avi|webm|mkv|3gp)$/.test(name)
+    ) {
       this._showErrorToast("No se permiten archivos de video.");
       return;
     }

@@ -13,6 +13,7 @@
 
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
+  --cb-attachment-bg: #e6e3ef;
   --cb-bg-header: #572b86;
   --cb-text: #1a1025;
   --cb-text-secondary: #7c6d94;
@@ -24,9 +25,9 @@
   --cb-bot-bubble: #ffffff;
   --cb-bot-text: #1a1025;
 
-  --cb-error-bubble: #fff1f2;
+  --cb-error-bubble: #fecdd3;
   --cb-error-text: #be123c;
-  --cb-error-border: rgba(190, 18, 60, 0.2);
+  --cb-error-border: rgba(190, 18, 60, 0.35);
 
   --cb-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 2px 12px rgba(0, 0, 0, 0.06);
   --cb-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -116,6 +117,7 @@
   :host {
     --cb-bg: #1c1528;
     --cb-bg-secondary: #141020;
+    --cb-attachment-bg: #2e2540;
     --cb-text: #f0ecf8;
     --cb-text-secondary: #9b8fb0;
     --cb-border: rgba(87, 43, 134, 0.18);
@@ -154,15 +156,16 @@
 #chat-bubble-window[data-theme="light"] {
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
+  --cb-attachment-bg: #e6e3ef;
   --cb-text: #1a1025;
   --cb-text-secondary: #7c6d94;
   --cb-border: rgba(87, 43, 134, 0.14);
   --cb-border-strong: rgba(87, 43, 134, 0.28);
   --cb-bot-bubble: #ffffff;
   --cb-bot-text: #1a1025;
-  --cb-error-bubble: #fff1f2;
+  --cb-error-bubble: #fecdd3;
   --cb-error-text: #be123c;
-  --cb-error-border: rgba(190, 18, 60, 0.2);
+  --cb-error-border: rgba(190, 18, 60, 0.35);
   --cb-danger-bg: #fef2f2;
   --cb-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 2px 12px rgba(0, 0, 0, 0.06);
   --cb-scrollbar-color: rgba(87, 43, 134, 0.25);
@@ -190,6 +193,7 @@
 #chat-bubble-window[data-theme="dark"] {
   --cb-bg: #1c1528;
   --cb-bg-secondary: #141020;
+  --cb-attachment-bg: #2e2540;
   --cb-text: #f0ecf8;
   --cb-text-secondary: #9b8fb0;
   --cb-border: rgba(87, 43, 134, 0.18);
@@ -725,6 +729,7 @@
   z-index: 30;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
   pointer-events: none;
   cursor: default;
@@ -735,6 +740,8 @@
   display: flex;
   align-items: center;
   gap: 9px;
+  max-width: 100%;
+  width: fit-content;
   padding: 11px 12px;
   background: var(--cb-error-bubble);
   color: var(--cb-error-text);
@@ -1544,7 +1551,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: var(--cb-bg-secondary);
+  background: var(--cb-attachment-bg);
   border-top: 1px solid var(--cb-border);
   flex-shrink: 0;
 
@@ -1576,6 +1583,7 @@
   background-position: center;
   flex-shrink: 0;
   border: 1px solid var(--cb-border);
+  cursor: pointer;
 }
 
 .cb-attachment-info {
@@ -1629,6 +1637,7 @@
 
 /* Configurar burbuja de imagen enviada por el usuario */
 .cb-message--user .cb-image-message {
+  background: transparent;
   padding: 3px;
   max-width: 240px;
 }
@@ -1646,8 +1655,13 @@
   cursor: pointer;
 }
 
+/* Burbuja propia para el texto, ya que el contenedor de la imagen es transparente */
 .cb-image-message-caption {
-  margin: 8px 6px 2px;
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  background: var(--cb-primary);
+  color: var(--cb-user-text);
+  border-radius: 16px;
   font-size: var(--cb-font-size-msg);
   line-height: 1.4;
   word-break: break-word;
@@ -2721,4 +2735,42 @@
 
 .cb-lightbox-close-btn:hover {
   background: rgba(255, 255, 255, 0.28);
+}
+
+/* Zona de arrastrar y soltar una imagen sobre la ventana del chat */
+.cb-dropzone-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--cb-z-index);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--cb-bg);
+  border: 2px dashed var(--cb-primary);
+  border-radius: var(--cb-radius);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--cb-transition);
+}
+
+.cb-dropzone-overlay.cb-visible {
+  opacity: 1;
+}
+
+.cb-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--cb-primary);
+  font-family: var(--cb-font);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cb-dropzone-content svg {
+  width: 32px;
+  height: 32px;
 }
