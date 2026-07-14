@@ -2216,6 +2216,7 @@ class ChatBubble {
       );
     } finally {
       this._setLoadingState(false);
+      this._updateSendButtonState();
       this.activeRequest = null;
       if (this.isOpen) this.input.focus();
     }
