@@ -8,6 +8,9 @@
   --cb-primary-glow: rgba(87, 43, 134, 0.35);
   --cb-primary-soft: rgba(87, 43, 134, 0.12);
   --cb-link-color: var(--cb-primary);
+  --cb-badge-bg: var(--cb-primary-soft);
+  --cb-badge-text: var(--cb-primary);
+  --cb-badge-border: rgba(87, 43, 134, 0.35);
 
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
@@ -127,6 +130,9 @@
     --cb-error-text: #fb7185;
     --cb-error-border: rgba(251, 113, 133, 0.2);
     --cb-danger-bg: #2a0a14;
+    --cb-badge-bg: rgba(196, 166, 245, 0.18);
+    --cb-badge-text: #c4a6f5;
+    --cb-badge-border: rgba(196, 166, 245, 0.4);
     --cb-shadow:
       0 16px 48px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.25);
     --cb-scrollbar-color: rgba(87, 43, 134, 0.3);
@@ -167,6 +173,9 @@
   --cb-error-text: #be123c;
   --cb-error-border: rgba(190, 18, 60, 0.35);
   --cb-danger-bg: #fef2f2;
+  --cb-badge-bg: var(--cb-primary-soft);
+  --cb-badge-text: var(--cb-primary);
+  --cb-badge-border: rgba(87, 43, 134, 0.35);
   --cb-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 2px 12px rgba(0, 0, 0, 0.06);
   --cb-scrollbar-color: rgba(87, 43, 134, 0.25);
   --cb-shimmer-gradient: linear-gradient(
@@ -205,6 +214,9 @@
   --cb-error-text: #fb7185;
   --cb-error-border: rgba(251, 113, 133, 0.2);
   --cb-danger-bg: #2a0a14;
+  --cb-badge-bg: rgba(196, 166, 245, 0.18);
+  --cb-badge-text: #c4a6f5;
+  --cb-badge-border: rgba(196, 166, 245, 0.4);
   --cb-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.25);
   --cb-scrollbar-color: rgba(87, 43, 134, 0.3);
   --cb-shimmer-gradient: linear-gradient(
@@ -2235,6 +2247,11 @@
   transform: translateX(100%);
 }
 
+/* Ocultar el input de mensajes mientras el panel de historial está abierto */
+#chat-bubble-window.cb-history-open .cb-input-area {
+  display: none;
+}
+
 .cb-history-panel-header {
   display: flex;
   align-items: center;
@@ -2452,6 +2469,13 @@
   transform: translateX(2px);
 }
 
+.cb-history-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .cb-history-item-title {
   font-family: var(--cb-font);
   font-weight: 600;
@@ -2462,10 +2486,26 @@
   text-overflow: ellipsis;
   line-height: 1.3;
   transition: color var(--cb-transition);
+  flex: 1;
+  min-width: 0;
 }
 
 .cb-history-item:hover .cb-history-item-title {
   color: var(--cb-primary);
+}
+
+.cb-history-item-badge {
+  flex-shrink: 0;
+  font-family: var(--cb-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cb-badge-text);
+  background: var(--cb-badge-bg);
+  border: 1px solid var(--cb-badge-border);
+  border-radius: 999px;
+  padding: 1px 7px;
 }
 
 .cb-history-item-preview {

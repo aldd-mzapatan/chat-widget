@@ -2557,20 +2557,19 @@ class ChatBubble {
 
   // Abrir panel de historial con transición
   _openHistoryPanel() {
-    // Usar offsetTop/clientHeight para que sea inmune al movimiento de la ventana
+    // Usar offsetTop para que sea inmune al movimiento de la ventana; el panel
+    // ocupa hasta el borde inferior porque el input de mensajes queda oculto
     const top = this.messagesContainer.offsetTop;
-    const bottom =
-      this.window.clientHeight -
-      (this.messagesContainer.offsetTop + this.messagesContainer.clientHeight);
 
     this.historyPanel.style.top = `${top}px`;
-    this.historyPanel.style.bottom = `${Math.max(0, bottom)}px`;
+    this.historyPanel.style.bottom = "0px";
 
     this._renderHistoryPanel();
 
     this.historyPanel.classList.add("cb-is-active");
     this.historyPanel.setAttribute("aria-hidden", "false");
     this.messagesContainer.classList.add("cb-history-active");
+    this.window.classList.add("cb-history-open");
     if (this.actionsBtn) this.actionsBtn.classList.add("cb-is-active");
 
     if (this.scrollBottomBtn) {
@@ -2583,6 +2582,7 @@ class ChatBubble {
     this.historyPanel.classList.remove("cb-is-active");
     this.historyPanel.setAttribute("aria-hidden", "true");
     this.messagesContainer.classList.remove("cb-history-active");
+    this.window.classList.remove("cb-history-open");
     if (this.actionsBtn) this.actionsBtn.classList.remove("cb-is-active");
 
     // Restaurar estado del botón de scroll si es necesario
@@ -2591,10 +2591,12 @@ class ChatBubble {
 
   // Renderizar la lista de sesiones guardadas agrupadas por fecha
   _renderHistoryPanel() {
-    // Excluir la sesión activa del historial
-    const sessions = getSessionsIndex().filter(
-      (s) => s.sessionId !== this.sessionId,
+    const allSessions = getSessionsIndex();
+    const activeSession = allSessions.find(
+      (s) => s.sessionId === this.sessionId,
     );
+    // Separar la sesión activa: se muestra fija arriba, no agrupada por fecha
+    const sessions = allSessions.filter((s) => s.sessionId !== this.sessionId);
 
     if (this.historyTitle) {
       this.historyTitle.textContent = sessions.length
@@ -2602,13 +2604,23 @@ class ChatBubble {
         : "Conversaciones";
     }
 
+    this.historyList.innerHTML = "";
+
+    if (activeSession) {
+      this.historyList.appendChild(
+        this._buildHistoryItem(activeSession, true),
+      );
+    }
+
     if (sessions.length === 0) {
-      this.historyList.innerHTML = `
-        <div class="cb-history-empty">
-          <div class="cb-history-empty-icon">${ICONS.chatEmpty}</div>
-          <p class="cb-history-empty-title">Sin conversaciones anteriores</p>
-          <p class="cb-history-empty-sub">Tus chats pasados aparecerán aquí</p>
-        </div>`;
+      const empty = document.createElement("div");
+      empty.className = "cb-history-empty";
+      empty.innerHTML = `
+        <div class="cb-history-empty-icon">${ICONS.chatEmpty}</div>
+        <p class="cb-history-empty-title">Sin conversaciones anteriores</p>
+        <p class="cb-history-empty-sub">Tus chats pasados aparecerán aquí</p>
+      `;
+      this.historyList.appendChild(empty);
       if (this.historyFooter) this.historyFooter.classList.add("cb-is-hidden");
       return;
     }
@@ -2616,8 +2628,6 @@ class ChatBubble {
     if (this.historyFooter) {
       this.historyFooter.classList.remove("cb-is-hidden");
     }
-
-    this.historyList.innerHTML = "";
 
     // Agrupar por fecha
     const now = new Date();
@@ -2662,11 +2672,14 @@ class ChatBubble {
   }
 
   // Construir un ítem de historial individual
-  _buildHistoryItem(session) {
+  _buildHistoryItem(session, isActive = false) {
     const item = document.createElement("div");
-    item.className = "cb-history-item";
+    item.className = isActive
+      ? "cb-history-item cb-history-item--active"
+      : "cb-history-item";
     item.setAttribute("role", "button");
-    item.setAttribute("tabindex", "0");
+    item.setAttribute("tabindex", isActive ? "-1" : "0");
+    if (isActive) item.setAttribute("aria-disabled", "true");
     item.dataset.sessionId = session.sessionId;
 
     // Generar vista previa con el último mensaje del bot, sin markdown
@@ -2689,7 +2702,10 @@ class ChatBubble {
 
     item.innerHTML = `
       <div class="cb-history-item-content">
-        <div class="cb-history-item-title" title="${this._escapeAttr(session.title)}">${this._escapeAttr(session.title)}</div>
+        <div class="cb-history-item-title-row">
+          <div class="cb-history-item-title" title="${this._escapeAttr(session.title)}">${this._escapeAttr(session.title)}</div>
+          ${isActive ? '<span class="cb-history-item-badge">Actual</span>' : ""}
+        </div>
         ${previewText ? `<div class="cb-history-item-preview">${this._escapeAttr(previewText)}</div>` : ""}
         <div class="cb-history-item-meta">
           <span class="cb-history-item-date">${this._formatRelativeDate(session.lastUserMessageAt || session.lastMessageAt)}</span>
@@ -2697,10 +2713,16 @@ class ChatBubble {
           <span class="cb-history-item-count">${countText}</span>
         </div>
       </div>
-      <button class="cb-history-item-delete" aria-label="Eliminar conversación" title="Eliminar conversación">
+      ${
+        isActive
+          ? ""
+          : `<button class="cb-history-item-delete" aria-label="Eliminar conversación" title="Eliminar conversación">
         ${ICONS.trash}
-      </button>
+      </button>`
+      }
     `;
+
+    if (isActive) return item;
 
     item.addEventListener("click", (e) => {
       if (e.target.closest(".cb-history-item-delete")) {
