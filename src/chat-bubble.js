@@ -396,7 +396,7 @@ class ChatBubble {
         <input type="file" id="cb-file-input" class="cb-file-input-hidden" accept="image/png,image/jpeg,image/webp,image/bmp,image/heic,image/heif" tabindex="-1" aria-hidden="true" />
         <textarea
           id="cb-input"
-          placeholder="Preguntarle a Ali..."
+          placeholder="Preguntarle a Ali"
           rows="1"
           maxlength="${this.config.behavior.maxMessageLength}"
           aria-label="Escribe tu mensaje"
@@ -2607,9 +2607,7 @@ class ChatBubble {
     this.historyList.innerHTML = "";
 
     if (activeSession) {
-      this.historyList.appendChild(
-        this._buildHistoryItem(activeSession, true),
-      );
+      this.historyList.appendChild(this._buildHistoryItem(activeSession, true));
     }
 
     if (sessions.length === 0) {
