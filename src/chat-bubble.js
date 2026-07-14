@@ -2136,14 +2136,13 @@ class ChatBubble {
     });
 
     audio.addEventListener("timeupdate", () => {
-      const pct = audio.duration
-        ? (audio.currentTime / audio.duration) * 100
-        : 0;
+      // El contenedor webm/opus de MediaRecorder no trae metadata de duración:
+      // audio.duration reporta Infinity en los primeros ticks. Usar la duración
+      // grabada como respaldo mientras el navegador la calcula.
+      const total = isFinite(audio.duration) ? audio.duration : duration;
+      const pct = total ? (audio.currentTime / total) * 100 : 0;
       progressBar.style.width = `${pct}%`;
-      const remaining = Math.max(
-        0,
-        Math.floor(audio.duration - audio.currentTime),
-      );
+      const remaining = Math.max(0, Math.floor(total - audio.currentTime));
       durationEl.textContent = formatDuration(remaining);
     });
 
