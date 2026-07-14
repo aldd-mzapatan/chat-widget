@@ -166,6 +166,9 @@ class ChatBubble {
     this.isRecording = false;
     this._audioSupported = isAudioRecordingSupported();
 
+    // Referenciar el audio en reproducción para permitir solo uno a la vez
+    this._activeAudio = null;
+
     // Advertir si no hay URL de webhook configurada
     if (!this.config.webhook.url) {
       console.warn(
@@ -1741,6 +1744,7 @@ class ChatBubble {
 
         if (response.sessionId && response.sessionId !== this.sessionId) {
           this.sessionId = response.sessionId;
+          setActiveSessionId(this.sessionId);
         }
       } else {
         this._showErrorToast(
@@ -2102,18 +2106,28 @@ class ChatBubble {
     });
 
     audio.addEventListener("play", () => {
+      // Pausar cualquier otro audio de la conversación antes de reproducir este
+      if (this._activeAudio && this._activeAudio !== audio) {
+        this._activeAudio.pause();
+      }
+      this._activeAudio = audio;
+
       isPlaying = true;
       playBtn.innerHTML = ICONS.audioPause;
       playBtn.setAttribute("aria-label", "Pausar audio");
     });
 
     audio.addEventListener("pause", () => {
+      if (this._activeAudio === audio) this._activeAudio = null;
+
       isPlaying = false;
       playBtn.innerHTML = ICONS.audioPlay;
       playBtn.setAttribute("aria-label", "Reproducir audio");
     });
 
     audio.addEventListener("ended", () => {
+      if (this._activeAudio === audio) this._activeAudio = null;
+
       isPlaying = false;
       playBtn.innerHTML = ICONS.audioPlay;
       playBtn.setAttribute("aria-label", "Reproducir audio");
@@ -2200,7 +2214,10 @@ class ChatBubble {
         this.activeRequest.signal,
       );
 
-      if (result.sessionId) this.sessionId = result.sessionId;
+      if (result.sessionId && result.sessionId !== this.sessionId) {
+        this.sessionId = result.sessionId;
+        setActiveSessionId(this.sessionId);
+      }
 
       if (result.event === "thinking") {
         // Ignorar evento de pensamiento y esperar respuesta
@@ -2459,7 +2476,10 @@ class ChatBubble {
         this.activeRequest.signal,
       );
 
-      if (result.sessionId) this.sessionId = result.sessionId;
+      if (result.sessionId && result.sessionId !== this.sessionId) {
+        this.sessionId = result.sessionId;
+        setActiveSessionId(this.sessionId);
+      }
 
       this._addBotMessage(result.output || "");
     } catch (error) {

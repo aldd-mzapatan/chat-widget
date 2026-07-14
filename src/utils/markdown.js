@@ -101,7 +101,8 @@ function parseInlineStyles(text) {
 
 // Convertir imágenes Markdown a etiquetas img HTML
 function parseMarkdownImages(text) {
-  const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  // Permitir un nivel de paréntesis dentro de la URL (p. ej. nombres de archivo como "borrador%20(1).gif")
+  const markdownImageRegex = /!\[([^\]]*)\]\(((?:[^()\s]|\([^()]*\))*)\)/g;
   return text.replace(markdownImageRegex, (_, altText, url) => {
     const cleanUrl = sanitizeUrl(url);
     return `<img src="${cleanUrl}" alt="${altText}" class="cb-image" style="max-width: 100%; border-radius: var(--cb-radius, 12px); margin: 8px 0; display: block;" loading="lazy" />`;
@@ -110,7 +111,8 @@ function parseMarkdownImages(text) {
 
 // Convertir enlaces Markdown a etiquetas ancla HTML
 function parseMarkdownLinks(text) {
-  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  // Permitir un nivel de paréntesis dentro de la URL, igual que en parseMarkdownImages
+  const markdownLinkRegex = /\[([^\]]+)\]\(((?:[^()\s]|\([^()]*\))*)\)/g;
   return text.replace(markdownLinkRegex, (_, linkText, url) => {
     const cleanUrl = sanitizeUrl(url);
     const target = cleanUrl.includes("ayuda.aliaddo.com") ? "_self" : "_blank";
