@@ -239,12 +239,11 @@ export async function sendAudioMessage(
     throw new Error('URL del webhook no configurada.');
   }
 
-  // Extraer extensión de archivo según tipo MIME
-  let ext = 'webm';
-  if (mimeType.includes('ogg')) ext = 'ogg';
-  else if (mimeType.includes('mp4')) ext = 'mp4';
+  const filename = `voice_${Date.now()}.mp3`;
 
-  const filename = `voice_${Date.now()}.${ext}`;
+  // Declarar el audio como audio/mpeg (aunque el códec real siga siendo el grabado por el navegador) para simplificar su procesamiento con modelos como Gemini
+  const outgoingMimeType = 'audio/mpeg';
+  const outgoingBlob = new Blob([audioBlob], { type: outgoingMimeType });
 
   const formData = new FormData();
   formData.append('sessionId', sessionId);
@@ -253,7 +252,7 @@ export async function sendAudioMessage(
     JSON.stringify({
       type: 'audio',
       duration,
-      mimeType,
+      mimeType: outgoingMimeType,
       filename,
       timestamp: new Date().toISOString(),
       source: 'chat-bubble',
@@ -261,7 +260,7 @@ export async function sendAudioMessage(
       ...extraMetadata,
     })
   );
-  formData.append('audioFile', audioBlob, filename);
+  formData.append('data', outgoingBlob, filename);
 
   const options = {
     method: 'POST',
