@@ -139,7 +139,7 @@ const DEFAULT_CONFIG = {
     showTimestamps: true,
     enableSoundNotification: false,
     maxMessageLength: 1000,
-    requestTimeout: 60000,
+    requestTimeout: 90000,
     maxImageSizeMB: 5,
   },
 };

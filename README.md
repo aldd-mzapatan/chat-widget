@@ -85,7 +85,7 @@ window.ChatBubbleConfig = {
     showTimestamps: true,
     enableSoundNotification: false,
     maxMessageLength: 1000,
-    requestTimeout: 60000,
+    requestTimeout: 90000,
   },
 };
 ```
@@ -111,7 +111,7 @@ window.ChatBubbleConfig = {
 | `behavior.openOnLoad`       | `boolean`                 | `false`            | Abrir el chat al cargar la página               |
 | `behavior.showTimestamps`   | `boolean`                 | `true`             | Mostrar hora en cada mensaje                    |
 | `behavior.maxMessageLength` | `number`                  | `1000`             | Máximo de caracteres por mensaje                |
-| `behavior.requestTimeout`   | `number`                  | `60000`            | Timeout del webhook (ms)                        |
+| `behavior.requestTimeout`   | `number`                  | `90000`            | Timeout del webhook (ms)                        |
 
 </details>
 
