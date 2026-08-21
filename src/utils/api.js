@@ -23,18 +23,32 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Traducir errores técnicos a mensajes legibles
+// Traducir errores técnicos a mensajes amigables, sin jerga técnica
 function classifyError(error) {
   if (error.name === 'AbortError') {
-    return 'La solicitud tardó demasiado tiempo. Verifica tu conexión e inténtalo de nuevo.';
+    return 'La respuesta está tardando más de lo normal. Inténtalo de nuevo en unos segundos.';
   }
-  if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-    return 'No se pudo conectar con el servidor. Puede ser un problema de CORS o de red. Verifica la URL del webhook y que el servidor permita solicitudes desde este dominio.';
+  if (error.name === 'TypeError') {
+    return 'No se pudo establecer conexión. Verifica tu conexión a internet e inténtalo de nuevo.';
   }
-  if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-    return 'Error de red. Verifica tu conexión a internet.';
+  return 'Ocurrió un problema al enviar tu mensaje. Inténtalo de nuevo.';
+}
+
+// Traducir códigos de estado HTTP a mensajes amigables, sin exponer el código al usuario
+function friendlyStatusError(status) {
+  if (status === 401 || status === 403) {
+    return 'No tienes permiso para usar el asistente en este momento. Contacta al administrador del sitio.';
   }
-  return `Error de conexión: ${error.message}`;
+  if (status === 404) {
+    return 'El asistente no está disponible en este momento. Contacta al administrador del sitio.';
+  }
+  if (status === 429) {
+    return 'Estás enviando mensajes muy rápido. Espera un momento antes de volver a intentarlo.';
+  }
+  if (status >= 500) {
+    return 'El asistente no está disponible en este momento. Inténtalo de nuevo en unos minutos.';
+  }
+  return 'Ocurrió un problema al procesar tu mensaje. Inténtalo de nuevo.';
 }
 
 // Ejecutar petición HTTP con reintentos automáticos
@@ -55,7 +69,7 @@ async function fetchWithRetry(url, options, timeout, retriesLeft, signal = null)
 // Enviar mensaje de texto al webhook
 export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadata = {}, timeout = DEFAULT_TIMEOUT, signal = null, onProgress = null) {
   if (!webhookUrl) {
-    throw new Error('URL del webhook no configurada. Agrega la URL en window.ChatBubbleConfig.webhook.url');
+    throw new Error('El asistente no está disponible en este momento. Contacta al administrador del sitio.');
   }
 
   const payload = {
@@ -95,19 +109,7 @@ export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadat
       if (errorBody) console.error('[ChatBubble] Detalle del error del webhook:', errorBody.slice(0, 500));
     } catch (_) {}
 
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(`Sin autorización para acceder al webhook (${response.status}). Verifica la configuración de n8n.`);
-    }
-    if (response.status === 404) {
-      throw new Error(`Webhook no encontrado (404). Verifica que la URL sea correcta y que el workflow esté activo en n8n.`);
-    }
-    if (response.status === 429) {
-      throw new Error(`Demasiadas solicitudes (429). Espera un momento antes de enviar otro mensaje.`);
-    }
-    if (response.status >= 500) {
-      throw new Error(`Error interno del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible.`);
-    }
-    throw new Error(`Error HTTP ${response.status}. No se pudo procesar tu solicitud.`);
+    throw new Error(friendlyStatusError(response.status));
   }
 
   // Decodificar respuesta JSON
@@ -115,7 +117,7 @@ export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadat
   try {
     data = await response.json();
   } catch (error) {
-    throw new Error('La respuesta del servidor no es JSON válido. Verifica la configuración del nodo "Respond to Webhook" en n8n.');
+    throw new Error('No se pudo obtener una respuesta válida. Inténtalo de nuevo.');
   }
 
   // Validar formato de respuesta del servidor
@@ -128,7 +130,7 @@ export async function sendMessage(webhookUrl, chatInput, sessionId, extraMetadat
         sessionId: data.sessionId || sessionId,
       };
     }
-    throw new Error('La respuesta del servidor no contiene el campo "output". Verifica la configuración del workflow en n8n.');
+    throw new Error('No se pudo obtener una respuesta válida. Inténtalo de nuevo.');
   }
 
   return {
@@ -148,7 +150,7 @@ export async function sendImageMessage(
   signal = null
 ) {
   if (!webhookUrl) {
-    throw new Error('URL del webhook no configurada.');
+    throw new Error('El asistente no está disponible en este momento. Contacta al administrador del sitio.');
   }
 
   const formData = new FormData();
@@ -191,23 +193,14 @@ export async function sendImageMessage(
       if (errorBody) console.error('[ChatBubble] Detalle del error del webhook:', errorBody.slice(0, 500));
     } catch (_) {}
 
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(`Sin autorización para acceder al webhook (${response.status}).`);
-    }
-    if (response.status === 404) {
-      throw new Error(`Webhook no encontrado (404). Verifica la URL y que el workflow esté activo.`);
-    }
-    if (response.status >= 500) {
-      throw new Error(`Error del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible.`);
-    }
-    throw new Error(`Error HTTP ${response.status}. No se pudo procesar tu solicitud.`);
+    throw new Error(friendlyStatusError(response.status));
   }
 
   let data;
   try {
     data = await response.json();
   } catch (_) {
-    throw new Error('La respuesta del servidor no es JSON válido.');
+    throw new Error('No se pudo obtener una respuesta válida. Inténtalo de nuevo.');
   }
 
   if (!data || typeof data.output === 'undefined') {
@@ -215,7 +208,7 @@ export async function sendImageMessage(
     if (possibleOutput) {
       return { output: String(possibleOutput), sessionId: data.sessionId || sessionId };
     }
-    throw new Error('La respuesta del servidor no contiene el campo "output".');
+    throw new Error('No se pudo obtener una respuesta válida. Inténtalo de nuevo.');
   }
 
   return {
@@ -236,7 +229,7 @@ export async function sendAudioMessage(
   signal = null
 ) {
   if (!webhookUrl) {
-    throw new Error('URL del webhook no configurada.');
+    throw new Error('El asistente no está disponible en este momento. Contacta al administrador del sitio.');
   }
 
   const filename = `voice_${Date.now()}.mp3`;
@@ -283,23 +276,14 @@ export async function sendAudioMessage(
       if (errorBody) console.error('[ChatBubble] Detalle del error del webhook:', errorBody.slice(0, 500));
     } catch (_) {}
 
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(`Sin autorización para acceder al webhook (${response.status}).`);
-    }
-    if (response.status === 404) {
-      throw new Error(`Webhook no encontrado (404). Verifica la URL y que el workflow esté activo.`);
-    }
-    if (response.status >= 500) {
-      throw new Error(`Error del servidor (${response.status}). El servicio de n8n puede estar temporalmente no disponible.`);
-    }
-    throw new Error(`Error HTTP ${response.status}. No se pudo procesar tu solicitud.`);
+    throw new Error(friendlyStatusError(response.status));
   }
 
   let data;
   try {
     data = await response.json();
   } catch (_) {
-    throw new Error('La respuesta del servidor no es JSON válido.');
+    throw new Error('No se pudo obtener una respuesta válida. Inténtalo de nuevo.');
   }
 
   if (!data || typeof data.output === 'undefined') {
@@ -307,7 +291,7 @@ export async function sendAudioMessage(
     if (possibleOutput) {
       return { output: String(possibleOutput), sessionId: data.sessionId || sessionId };
     }
-    throw new Error('La respuesta del servidor no contiene el campo "output".');
+    throw new Error('No se pudo obtener una respuesta válida. Inténtalo de nuevo.');
   }
 
   return {

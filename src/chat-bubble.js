@@ -1674,7 +1674,7 @@ class ChatBubble {
     // Advertir si falta la configuración del webhook
     if (!this.config.webhook.url) {
       this._showErrorToast(
-        "El widget no está configurado correctamente. Falta la URL del webhook de n8n.",
+        "El asistente no está disponible en este momento. Contacta al administrador del sitio.",
       );
       return;
     }
@@ -1748,7 +1748,7 @@ class ChatBubble {
         }
       } else {
         this._showErrorToast(
-          "Ocurrió un error al procesar tu mensaje. La respuesta del servidor no tiene el formato esperado.",
+          "No se pudo obtener una respuesta válida. Inténtalo de nuevo.",
         );
       }
     } catch (error) {
