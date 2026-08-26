@@ -99,34 +99,47 @@ function parseInlineStyles(text) {
     .replace(/~~([^~\n]+)~~/g, "<del>$1</del>");
 }
 
-// Convertir imágenes Markdown a etiquetas img HTML
-function parseMarkdownImages(text) {
-  // Permitir un nivel de paréntesis dentro de la URL (p. ej. nombres de archivo como "borrador%20(1).gif")
+// Aislar imágenes y enlaces antes de negrita/cursiva (evitar que un "_" en URL rompa la imagen)
+function extractImagesAndLinks(text, blocks) {
+  let result = text;
   const markdownImageRegex = /!\[([^\]]*)\]\(((?:[^()\s]|\([^()]*\))*)\)/g;
-  return text.replace(markdownImageRegex, (_, altText, url) => {
+  result = result.replace(markdownImageRegex, (_, altText, url) => {
     const cleanUrl = sanitizeUrl(url);
-    return `<img src="${cleanUrl}" alt="${altText}" class="cb-image" style="max-width: 100%; border-radius: var(--cb-radius, 12px); margin: 8px 0; display: block;" loading="lazy" />`;
+    const html = `<img src="${cleanUrl}" alt="${altText}" class="cb-image" style="max-width: 100%; border-radius: var(--cb-radius, 12px); margin: 8px 0; display: block;" loading="lazy" />`;
+    const index = blocks.length;
+    blocks.push(html);
+    return `\x00LINK${index}\x00`;
   });
-}
 
-// Convertir enlaces Markdown a etiquetas ancla HTML
-function parseMarkdownLinks(text) {
-  // Permitir un nivel de paréntesis dentro de la URL, igual que en parseMarkdownImages
   const markdownLinkRegex = /\[([^\]]+)\]\(((?:[^()\s]|\([^()]*\))*)\)/g;
-  return text.replace(markdownLinkRegex, (_, linkText, url) => {
+  result = result.replace(markdownLinkRegex, (_, linkText, url) => {
     const cleanUrl = sanitizeUrl(url);
     const target = cleanUrl.includes("ayuda.aliaddo.com") ? "_self" : "_blank";
-    return `<a href="${cleanUrl}" target="${target}" rel="noopener noreferrer" class="cb-link">${linkText}</a>`;
+    const processedText = parseInlineStyles(linkText);
+    const html = `<a href="${cleanUrl}" target="${target}" rel="noopener noreferrer" class="cb-link">${processedText}</a>`;
+    const index = blocks.length;
+    blocks.push(html);
+    return `\x00LINK${index}\x00`;
   });
+
+  return result;
+}
+
+function restoreImagesAndLinks(text, blocks) {
+  let result = text;
+  blocks.forEach((html, i) => {
+    result = result.replace(`\x00LINK${i}\x00`, html);
+  });
+  return result;
 }
 
 // Procesar estilos, enlaces y URLs en un bloque de texto
 function parseInline(text) {
-  let processed = text;
+  const linkBlocks = [];
+  let processed = extractImagesAndLinks(text, linkBlocks);
   processed = parseInlineStyles(processed);
-  processed = parseMarkdownImages(processed);
-  processed = parseMarkdownLinks(processed);
   processed = linkifyUrls(processed);
+  processed = restoreImagesAndLinks(processed, linkBlocks);
   return processed;
 }
 
