@@ -39,6 +39,8 @@ Build pipeline is two esbuild invocations chained with `&&`: one bundles `src/ch
 
 **Distribution model**: no npm publish — `dist/` is committed and served straight from GitHub via jsDelivr (`cdn.jsdelivr.net/gh/aldd-mzapatan/chat-widget@<tag>/dist/...`). Releasing means: bump `version` in `package.json`, run `npm run build`, commit `dist/*`, tag `vX.Y.Z`. See README.md "Publicación y distribución" and EMBED.md for the full flow.
 
+**Sync with ayuda.aliaddo.com**: after every `npm run build`, copy the generated `dist/chat-bubble.js` to `C:\Users\mzapatan\Documents\_projects\ayuda.aliaddo.com\public\widgets\chat-bubble\chat-bubble.js` (that site embeds this widget locally, not via jsDelivr). That repo's `astro.config.mjs` loads the script with a cache-busting query string (`chat-bubble.js?v=X.Y.Z`) because `firebase.json` caches `widgets/**` for 24h (`stale-while-revalidate` up to 7 days) — bump that `v=` value to match this repo's `package.json` version every time the copied file changes, otherwise deployed fixes can stay invisible behind stale cache even after a Firebase deploy. Deploying that site (`pnpm deploy`) is a human-only action per that repo's own CLAUDE.md — do not run it.
+
 ## Conventions specific to this repo
 
 - **All code comments are written in Spanish**, using the infinitive form for action descriptions (e.g. `// Validar entrada del usuario`, not `// Valida...`). Keep comments short (ideally one line) — this repo's existing comments follow a "what/why, not how" style; don't add comments that just restate the code. This applies throughout `src/`, not just to new code.
