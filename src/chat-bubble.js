@@ -49,6 +49,11 @@ const ICONS = {
     <path d="M6 0C6.3 3.5 8.5 5.7 12 6C8.5 6.3 6.3 8.5 6 12C5.7 8.5 3.5 6.3 0 6C3.5 5.7 5.7 3.5 6 0Z"/>
   </svg>`,
 
+  arrowDown: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <polyline points="19 12 12 19 5 12"></polyline>
+  </svg>`,
+
   arrowLeft: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <line x1="19" y1="12" x2="5" y2="12"></line>
     <polyline points="12 19 5 12 12 5"></polyline>
@@ -76,10 +81,6 @@ const ICONS = {
 
   trash: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-  </svg>`,
-
-  newChat: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" clip-rule="evenodd"/>
   </svg>`,
 
   newSession: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -120,10 +121,6 @@ const ICONS = {
     <line x1="12" y1="19" x2="12" y2="22"></line>
   </svg>`,
 
-  micStop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-    <rect x="6" y="6" width="12" height="12" rx="2"/>
-  </svg>`,
-
   audioPlay: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
     <path d="M8 5v14l11-7z"/>
   </svg>`,
@@ -143,6 +140,9 @@ const ICONS = {
 };
 
 // Declarar configuración predeterminada del sistema
+// Velocidad de reproducción de los videos del avatar
+const AVATAR_VIDEO_RATE = 1.5;
+
 const DEFAULT_CONFIG = {
   webhook: {
     url: "",
@@ -190,7 +190,6 @@ class ChatBubble {
     this.config = this._mergeConfig(DEFAULT_CONFIG, config || {});
     this.isOpen = false;
     this.isLoading = false;
-    this.hasNewMessage = false;
     this.sessionId = getOrCreateSessionId();
     this.messageCount = 0;
     this.chatHistory = [];
@@ -224,7 +223,6 @@ class ChatBubble {
 
   // Ejecutar secuencia de arranque
   async _init() {
-    this._injectStyles();
     this._buildDOM();
     this._applyConfig();
     this._bindEvents();
@@ -242,8 +240,6 @@ class ChatBubble {
       setTimeout(() => this._openChat(), 400);
     }
   }
-
-  _injectStyles() {}
 
   async _loadHistory() {
     this._insertAgentIntro();
@@ -308,10 +304,10 @@ class ChatBubble {
       <button class="cb-launcher-btn" id="cb-launcher-btn" aria-label="Abrir chat" aria-expanded="false" aria-controls="chat-bubble-window">
         <span class="cb-icon-chat" id="cb-launcher-icon-container"></span>
         <span class="cb-icon-close">${ICONS.chevronDown}</span>
-        <span class="cb-sparkle cb-sparkle--1" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0C6.3 3.5 8.5 5.7 12 6C8.5 6.3 6.3 8.5 6 12C5.7 8.5 3.5 6.3 0 6C3.5 5.7 5.7 3.5 6 0Z"/></svg></span>
-        <span class="cb-sparkle cb-sparkle--3" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0C6.3 3.5 8.5 5.7 12 6C8.5 6.3 6.3 8.5 6 12C5.7 8.5 3.5 6.3 0 6C3.5 5.7 5.7 3.5 6 0Z"/></svg></span>
-        <span class="cb-sparkle cb-sparkle--5" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0C6.3 3.5 8.5 5.7 12 6C8.5 6.3 6.3 8.5 6 12C5.7 8.5 3.5 6.3 0 6C3.5 5.7 5.7 3.5 6 0Z"/></svg></span>
+        <span class="cb-launcher-halo" aria-hidden="true"></span>
+        <span class="cb-launcher-ai" aria-hidden="true">${ICONS.sparkle}</span>
       </button>
+      <span class="cb-launcher-label" aria-hidden="true">${this._escapeAttr(`Pregúntale a ${this.config.bot.name}`)}</span>
       <span class="cb-notification-badge" id="cb-notification-badge" aria-label="Nuevo mensaje" role="status"></span>
     `;
 
@@ -375,8 +371,8 @@ class ChatBubble {
 
       <div class="cb-messages" id="cb-messages-container" role="log" aria-live="polite" aria-label="Mensajes del chat">
         <div class="cb-message cb-message--bot cb-typing-wrapper" id="cb-typing">
-          <div class="cb-msg-avatar">
-            ${this.config.bot.avatar ? `<img src="${this._escapeAttr(this.config.bot.avatar)}" alt="${this._escapeAttr(this.config.bot.name)}">` : ICONS.bot}
+          <div class="cb-msg-avatar" aria-hidden="true">
+            ${this.config.bot.avatar ? `<img src="${this._escapeAttr(this.config.bot.avatar)}" alt="">` : ICONS.bot}
           </div>
           <div class="cb-msg-col">
             <div class="cb-typing-indicator" role="status" aria-live="polite"></div>
@@ -411,22 +407,24 @@ class ChatBubble {
         </div>
       </div>
 
-      <div class="cb-reply-preview" id="cb-reply-preview" aria-hidden="true">
-        <div class="cb-reply-bar"></div>
-        <div class="cb-reply-content">
-          <span class="cb-reply-label">${this._escapeAttr(this.config.bot.name)}</span>
-          <span class="cb-reply-text" id="cb-reply-text"></span>
-        </div>
-        <button class="cb-reply-cancel" id="cb-reply-cancel" aria-label="Cancelar respuesta">
-          ${ICONS.close}
-        </button>
-      </div>
-
       <div class="cb-input-area">
-        <button id="cb-scroll-bottom-btn" class="cb-scroll-bottom-btn" aria-label="Desplazarse hacia abajo">
-          ${ICONS.chevronDown}
+        <button id="cb-scroll-bottom-btn" class="cb-scroll-bottom-btn" aria-label="Ir al último mensaje" title="Ir al último mensaje">
+          ${ICONS.arrowDown}
+          <span class="cb-scroll-bottom-label">Respuesta nueva</span>
         </button>
         <div class="cb-composer">
+          <div class="cb-reply-preview" id="cb-reply-preview" aria-hidden="true">
+            <div class="cb-reply-chip">
+              <div class="cb-reply-card" id="cb-reply-card" role="button" tabindex="0" aria-label="Ir al mensaje citado" title="Ir al mensaje citado">
+                <span class="cb-reply-label">${ICONS.reply}<span>Respondiendo a <strong>${this._escapeAttr(this.config.bot.name)}</strong></span></span>
+                <span class="cb-reply-text" id="cb-reply-text"></span>
+              </div>
+              <button class="cb-reply-cancel" id="cb-reply-cancel" aria-label="Cancelar respuesta" title="Cancelar respuesta">
+                ${ICONS.close}
+              </button>
+            </div>
+          </div>
+          <span class="cb-sr-only" id="cb-reply-live" aria-live="polite"></span>
           <div class="cb-attachment-preview" id="cb-attachment-preview" aria-hidden="true">
             <div class="cb-attachment-chip">
               <div class="cb-attachment-thumb" id="cb-attachment-thumb" role="button" tabindex="0" aria-label="Ver imagen ampliada" title="Ver imagen ampliada"></div>
@@ -492,6 +490,11 @@ class ChatBubble {
       launcherImg.loading = "lazy";
       launcherContainer.appendChild(launcherImg);
 
+      // Animar el avatar del lanzador con el mismo video de la presentación
+      if (this.config.bot.avatarVideo) {
+        this._setupLauncherVideo(launcherContainer, this.config.bot.avatarVideo);
+      }
+
       const headerImg = document.createElement("img");
       headerImg.src = this._escapeAttr(this.config.bot.avatar);
       headerImg.alt = this._escapeAttr(this.config.bot.name);
@@ -511,7 +514,6 @@ class ChatBubble {
       "cb-messages-container",
     );
     this.typingIndicator = this.shadowRoot.getElementById("cb-typing");
-    this.emptyState = this.shadowRoot.getElementById("cb-empty-state");
     this.input = this.shadowRoot.getElementById("cb-input");
     this.sendBtn = this.shadowRoot.getElementById("cb-send-btn");
 
@@ -540,6 +542,8 @@ class ChatBubble {
     this.replyPreview = this.shadowRoot.getElementById("cb-reply-preview");
     this.replyText = this.shadowRoot.getElementById("cb-reply-text");
     this.replyCancelBtn = this.shadowRoot.getElementById("cb-reply-cancel");
+    this.replyCard = this.shadowRoot.getElementById("cb-reply-card");
+    this.replyLive = this.shadowRoot.getElementById("cb-reply-live");
     this.micBtn = this.shadowRoot.getElementById("cb-mic-btn");
 
     // Almacenar referencias para el historial y acciones del header
@@ -720,12 +724,13 @@ class ChatBubble {
       this.window.classList.remove("cb-position--left");
     }
 
-    if (style.theme === "light") {
-      this.window.setAttribute("data-theme", "light");
-    } else if (style.theme === "dark") {
-      this.window.setAttribute("data-theme", "dark");
-    } else {
-      this.window.removeAttribute("data-theme");
+    // Aplicar el tema forzado también al lanzador para que tooltip y chip coincidan
+    for (const el of [this.window, this.launcher]) {
+      if (style.theme === "light" || style.theme === "dark") {
+        el.setAttribute("data-theme", style.theme);
+      } else {
+        el.removeAttribute("data-theme");
+      }
     }
   }
 
@@ -759,7 +764,7 @@ class ChatBubble {
     });
 
     if (this.historyBtn) {
-      // detail === 0 indica activación por teclado: solo entonces mover el foco
+      // Mover el foco solo con activación por teclado (detail === 0)
       this.historyBtn.addEventListener("click", (e) => {
         this._closeActionsMenu();
         this._toggleHistoryPanel(e.detail === 0);
@@ -809,6 +814,17 @@ class ChatBubble {
       this.input.focus();
     });
 
+    // Navegar al mensaje original desde la cita del composer
+    this.replyCard.addEventListener("click", () =>
+      this._jumpToMessage(this._replySourceEl),
+    );
+    this.replyCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        this._jumpToMessage(this._replySourceEl);
+      }
+    });
+
     this.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -825,7 +841,7 @@ class ChatBubble {
     this.input.addEventListener("paste", (e) => this._handlePaste(e));
 
     // Cerrar chat o panel al presionar Escape
-    document.addEventListener("keydown", (e) => {
+    this._onDocumentKeydown = (e) => {
       if (this.isRecording && this.isOpen) {
         if (e.key === "Escape") {
           e.preventDefault();
@@ -851,11 +867,16 @@ class ChatBubble {
         ) {
           this._closeHistoryPanel();
           e.stopPropagation();
+        } else if (this.isOpen && this.replyingTo) {
+          // Cancelar primero la cita activa antes de cerrar el chat
+          this._clearReply();
+          this.input.focus();
         } else if (this.isOpen) {
           this._closeChat();
         }
       }
-    });
+    };
+    document.addEventListener("keydown", this._onDocumentKeydown);
 
     // Detectar posición de desplazamiento para botón de scroll
     this.messagesContainer.addEventListener("scroll", () =>
@@ -1074,10 +1095,12 @@ class ChatBubble {
     this.window.classList.add("cb-is-open");
     this.window.setAttribute("aria-hidden", "false");
     this.launcherBtn.classList.add("cb-is-open");
+    this.launcher.classList.add("cb-launcher--open");
     this.launcherBtn.setAttribute("aria-expanded", "true");
     this.launcherBtn.setAttribute("aria-label", "Cerrar chat");
 
     this._clearNotificationBadge();
+    this._syncLauncherVideo();
 
     this._scrollToBottom();
 
@@ -1094,11 +1117,13 @@ class ChatBubble {
     this.window.classList.remove("cb-is-open");
     this.window.setAttribute("aria-hidden", "true");
     this.launcherBtn.classList.remove("cb-is-open");
+    this.launcher.classList.remove("cb-launcher--open");
     this.launcherBtn.setAttribute("aria-expanded", "false");
     this.launcherBtn.setAttribute("aria-label", "Abrir chat");
 
     // Pausar el video del avatar: no tiene sentido decodificarlo con el chat cerrado
     this.avatarVideo?.pause();
+    this._syncLauncherVideo();
   }
 
   // Administrar ciclo de vida de la sesión
@@ -1106,6 +1131,7 @@ class ChatBubble {
     if (this.activeRequest) this.activeRequest.abort();
     this.activeRequest = null;
     this._hideThinkingIndicator();
+    this._setScrollUnread(false);
     // Reiniciar estado de carga para desbloquear el input
     this._setLoadingState(false);
     this._clearReply();
@@ -1173,13 +1199,14 @@ class ChatBubble {
     const message = document.createElement("div");
     message.className = "cb-message cb-message--bot";
 
-    // Configurar avatar junto al mensaje
+    // Configurar avatar junto al mensaje; es decorativo para no repetir el nombre en lectores de pantalla
     const avatarEl = document.createElement("div");
     avatarEl.className = "cb-msg-avatar";
+    avatarEl.setAttribute("aria-hidden", "true");
     if (this.config.bot.avatar) {
       const img = document.createElement("img");
       img.src = this._escapeAttr(this.config.bot.avatar);
-      img.alt = this._escapeAttr(this.config.bot.name);
+      img.alt = "";
       avatarEl.appendChild(img);
     } else {
       avatarEl.innerHTML = ICONS.bot;
@@ -1225,7 +1252,7 @@ class ChatBubble {
     replyBtn.addEventListener("click", () => {
       // Extraer texto limpio para la cita
       const plainText = content.textContent || content.innerText || "";
-      this._setReply(plainText.trim());
+      this._setReply(plainText.trim(), message);
     });
     actions.appendChild(replyBtn);
 
@@ -1345,6 +1372,7 @@ class ChatBubble {
       }
       // Medir antes de crecer el texto para no arrastrar al usuario que subió a leer
       const stickToBottom = this._isNearBottom();
+      if (!stickToBottom) this._setScrollUnread(true);
       let count = 0;
       while (count < charsPerTick && charIndex < active.fullText.length) {
         active.node.nodeValue += active.fullText[charIndex];
@@ -1438,7 +1466,8 @@ class ChatBubble {
     content.className = "cb-message-content";
 
     // Incluir bloque de cita si existe
-    if (this.replyingTo) {
+    const replyingTo = this.replyingTo;
+    if (replyingTo) {
       const quote = document.createElement("div");
       quote.className = "cb-message-quote";
 
@@ -1447,23 +1476,30 @@ class ChatBubble {
 
       const quoteText = document.createElement("span");
       quoteText.className = "cb-message-quote-text";
-      // Limitar longitud del texto citado
-      const maxLen = 80;
-      const originalReply = this.replyingTo;
-      quoteText.textContent =
-        this.replyingTo.length > maxLen
-          ? this.replyingTo.substring(0, maxLen) + "..."
-          : this.replyingTo;
+      // Recortar solo textos muy largos; el corte visual lo hace CSS a 2 líneas
+      quoteText.textContent = replyingTo.slice(0, 300);
 
       quote.appendChild(quoteBar);
       quote.appendChild(quoteText);
       content.appendChild(quote);
 
+      // Permitir saltar al mensaje original desde la cita enviada
+      quote.setAttribute("role", "button");
+      quote.tabIndex = 0;
+      quote.title = "Ir al mensaje citado";
+      quote.setAttribute("aria-label", "Ir al mensaje citado");
+      const jump = () =>
+        this._jumpToMessage(this._findQuotedMessage(replyingTo, message));
+      quote.addEventListener("click", jump);
+      quote.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          jump();
+        }
+      });
+
       // Restablecer estado de cita
       this._clearReply();
-
-      // Restaurar temporalmente para guardarlo
-      this.replyingTo = originalReply;
     }
 
     content.appendChild(document.createTextNode(text));
@@ -1485,7 +1521,7 @@ class ChatBubble {
         role: "user",
         text: text,
         date: dateObj.toISOString(),
-        replyingTo: this.replyingTo,
+        replyingTo,
         isAudio: false,
       });
       saveChatHistory(this.chatHistory, this.sessionId);
@@ -1496,30 +1532,23 @@ class ChatBubble {
       );
     }
 
-    if (this.replyingTo) {
-      this.replyingTo = null; // Limpiar definitivamente
-    }
-
     this._scrollToBottom();
     return message;
   }
 
   // Activar modo de respuesta con cita
-  _setReply(text) {
+  _setReply(text, sourceEl = null) {
     if (!text) return;
 
     this.replyingTo = text;
+    this._replySourceEl = sourceEl;
 
-    // Limitar longitud del texto para la vista previa
-    const maxPreviewLength = 80;
-    const preview =
-      text.length > maxPreviewLength
-        ? text.substring(0, maxPreviewLength) + "..."
-        : text;
-
-    this.replyText.textContent = preview;
+    // Recortar solo textos muy largos; el corte visual lo hace CSS a 2 líneas
+    this.replyText.textContent = text.slice(0, 300);
     this.replyPreview.classList.add("cb-visible");
     this.replyPreview.setAttribute("aria-hidden", "false");
+    this.replyCard.classList.toggle("cb-is-linked", !!sourceEl);
+    this.replyLive.textContent = `Respondiendo a ${this.config.bot.name}`;
 
     // Foco automático en el campo de texto
     this.input.focus();
@@ -1528,9 +1557,53 @@ class ChatBubble {
   // Cancelar modo de respuesta y limpiar cita
   _clearReply() {
     this.replyingTo = null;
+    this._replySourceEl = null;
     this.replyPreview.classList.remove("cb-visible");
     this.replyPreview.setAttribute("aria-hidden", "true");
     this.replyText.textContent = "";
+    this.replyLive.textContent = "";
+  }
+
+  // Buscar el mensaje del asistente citado, del más reciente al más antiguo
+  _findQuotedMessage(quoteText, beforeEl = null) {
+    const needle = quoteText.replace(/\s+/g, " ").trim().slice(0, 60);
+    if (!needle) return null;
+    const bots = [...this.messagesContainer.querySelectorAll(".cb-message--bot")];
+    for (let i = bots.length - 1; i >= 0; i--) {
+      const el = bots[i];
+      if (beforeEl && el.compareDocumentPosition(beforeEl) & Node.DOCUMENT_POSITION_PRECEDING) continue;
+      const text = el.querySelector(".cb-message-content")?.textContent || "";
+      if (text.replace(/\s+/g, " ").trim().startsWith(needle)) return el;
+    }
+    return null;
+  }
+
+  // Desplazar hasta un mensaje y resaltarlo brevemente
+  _jumpToMessage(messageEl) {
+    if (!messageEl || !messageEl.isConnected) return;
+    const container = this.messagesContainer;
+    const cRect = container.getBoundingClientRect();
+    const mRect = messageEl.getBoundingClientRect();
+    // Centrar mensajes cortos y alinear arriba los que no caben en la vista
+    const offset =
+      mRect.height < cRect.height
+        ? (cRect.height - mRect.height) / 2
+        : 16;
+    container.scrollTo({
+      top: container.scrollTop + (mRect.top - cRect.top) - offset,
+      behavior: this._prefersReducedMotion() ? "auto" : "smooth",
+    });
+
+    const bubble = messageEl.querySelector(".cb-message-content");
+    if (!bubble) return;
+    bubble.classList.remove("cb-is-highlighted");
+    void bubble.offsetWidth;
+    bubble.classList.add("cb-is-highlighted");
+    clearTimeout(this._highlightTimer);
+    this._highlightTimer = setTimeout(
+      () => bubble.classList.remove("cb-is-highlighted"),
+      1600,
+    );
   }
 
   // Desplegar saludo inicial
@@ -1585,27 +1658,9 @@ class ChatBubble {
 
   // Configurar el video en bucle que reemplaza la foto de perfil al hacer hover
   _setupAvatarVideo(avatarWrap, videoSrc) {
-    const reducedMotion =
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) return;
+    if (this._prefersReducedMotion()) return;
 
-    const SPEED = 1.5;
-
-    const video = document.createElement("video");
-    video.className = "cb-agent-intro-video";
-    video.muted = true;
-    video.loop = false;
-    video.playsInline = true;
-    video.preload = "auto";
-    video.src = this._escapeAttr(videoSrc);
-    video.setAttribute("muted", "");
-    video.setAttribute("playsinline", "");
-    video.setAttribute("webkit-playsinline", "");
-    video.setAttribute("disablepictureinpicture", "");
-    video.setAttribute("disableremoteplayback", "");
-    video.setAttribute("aria-hidden", "true");
-    video.tabIndex = -1;
+    const video = this._createAvatarVideo("cb-agent-intro-video", videoSrc);
     avatarWrap.appendChild(video);
 
     // Reiniciar y repetir al terminar
@@ -1619,7 +1674,7 @@ class ChatBubble {
       "canplay",
       () => {
         avatarWrap.classList.add("cb-is-playing");
-        video.playbackRate = SPEED;
+        video.playbackRate = AVATAR_VIDEO_RATE;
         video.play().catch(() => {});
       },
       { once: true },
@@ -1641,6 +1696,63 @@ class ChatBubble {
     );
     this._avatarVideoObserver.observe(video);
     this.avatarVideo = video;
+  }
+
+  // Configurar el video en bucle del avatar del lanzador
+  _setupLauncherVideo(container, videoSrc) {
+    if (this._prefersReducedMotion()) return;
+
+    const video = this._createAvatarVideo("cb-launcher-video", videoSrc);
+    video.loop = true;
+    container.appendChild(video);
+    this.launcherVideo = video;
+
+    video.addEventListener(
+      "canplay",
+      () => {
+        container.classList.add("cb-is-playing");
+        this._syncLauncherVideo();
+      },
+      { once: true },
+    );
+
+    // Pausar el video cuando la pestaña no es visible
+    this._onVisibilityChange = () => this._syncLauncherVideo();
+    document.addEventListener("visibilitychange", this._onVisibilityChange);
+  }
+
+  // Crear un video de avatar silencioso, decorativo y apto para reproducción automática
+  _createAvatarVideo(className, videoSrc) {
+    const video = document.createElement("video");
+    video.className = className;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.src = this._escapeAttr(videoSrc);
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.setAttribute("disablepictureinpicture", "");
+    video.setAttribute("disableremoteplayback", "");
+    video.setAttribute("aria-hidden", "true");
+    video.tabIndex = -1;
+    return video;
+  }
+
+  _prefersReducedMotion() {
+    return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // Reproducir el video del lanzador solo con el chat cerrado y la pestaña visible
+  _syncLauncherVideo() {
+    const video = this.launcherVideo;
+    if (!video) return;
+    if (!this.isOpen && document.visibilityState === "visible") {
+      video.playbackRate = AVATAR_VIDEO_RATE;
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
   }
 
   // Construir cabecera de presentación
@@ -1717,10 +1829,6 @@ class ChatBubble {
     this._scrollToBottom();
   }
 
-  _hideTypingIndicator() {
-    this.typingIndicator.classList.remove("cb-visible");
-  }
-
   // Mostrar u actualizar el texto de estado; si ya está visible, solo cambiar el texto con transición
   _showThinkingIndicator(message) {
     const typingEl = this.typingIndicator;
@@ -1764,7 +1872,7 @@ class ChatBubble {
       this._showTypingIndicator();
     }
 
-    // Con texto inicial (imagen/audio) omitir la primera etapa genérica, que lo repetiría
+    // Omitir la primera etapa genérica si hay texto inicial (imagen/audio), porque lo repetiría
     (initialText ? steps.slice(1) : steps).forEach((step) => {
       this._waitTimers.push(
         setTimeout(() => {
@@ -2057,25 +2165,19 @@ class ChatBubble {
     } else {
       this.scrollBottomBtn.classList.remove("cb-visible");
     }
+
+    // Limpiar el aviso de respuesta nueva al llegar al fondo
+    if (this._isNearBottom()) this._setScrollUnread(false);
   }
 
-  // Insertar cadena en la posición actual del cursor
-  _insertAtCursor(input, text) {
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    const value = input.value;
-
-    input.value = value.substring(0, start) + text + value.substring(end);
-
-    // Actualizar posición del cursor tras la inserción
-    const newCursorPos = start + text.length;
-    input.selectionStart = input.selectionEnd = newCursorPos;
-
-    input.focus();
-
-    // Actualizar estado de interfaz tras la edición
-    this._autoResizeTextarea();
-    this._updateSendButtonState();
+  // Avisar en el botón de scroll que hay contenido nuevo fuera de la vista
+  _setScrollUnread(hasNew) {
+    if (!this.scrollBottomBtn || this._hasScrollUnread === hasNew) return;
+    this._hasScrollUnread = hasNew;
+    this.scrollBottomBtn.classList.toggle("cb-has-new", hasNew);
+    const label = hasNew ? "Ver respuesta nueva" : "Ir al último mensaje";
+    this.scrollBottomBtn.setAttribute("aria-label", label);
+    this.scrollBottomBtn.title = label;
   }
 
   // Funciones de utilidad internas
@@ -2224,7 +2326,7 @@ class ChatBubble {
     status.appendChild(timer);
     this._recordingTimer = timer;
 
-    // Onda desplazable: barras de altura fija escaladas según el nivel
+    // Construir onda desplazable con barras de altura fija escaladas según el nivel
     const wave = document.createElement("div");
     wave.className = "cb-recording-wave";
     wave.setAttribute("aria-hidden", "true");
@@ -2238,7 +2340,7 @@ class ChatBubble {
       this._recordingLevels.push(0);
     }
 
-    // Botón enviar con anillo que se completa al llegar al límite de duración
+    // Construir botón enviar con anillo que se completa al llegar al límite de duración
     const sendBtn = document.createElement("button");
     sendBtn.className = "cb-recording-send";
     sendBtn.setAttribute("aria-label", "Enviar audio");
@@ -2250,9 +2352,8 @@ class ChatBubble {
       </svg>
       ${ICONS.send}`;
     sendBtn.addEventListener("click", () => this._stopRecording());
-    this._recordingSendBtn = sendBtn;
 
-    // Región para anunciar cambios de estado una sola vez
+    // Anunciar cambios de estado una sola vez
     const live = document.createElement("span");
     live.className = "cb-sr-only";
     live.setAttribute("aria-live", "polite");
@@ -2313,7 +2414,6 @@ class ChatBubble {
       this._recordingTimer = null;
       this._recordingBars = null;
       this._recordingLevels = null;
-      this._recordingSendBtn = null;
       this._recordingLive = null;
     }
   }
@@ -2387,7 +2487,7 @@ class ChatBubble {
 
     const bars = [];
     for (let i = 0; i < WAVE_BARS; i++) {
-      // Altura provisional hasta decodificar el audio
+      // Usar altura provisional hasta decodificar el audio
       const h = (0.3 + 0.25 * Math.abs(Math.sin(i * 1.7))).toFixed(2);
       for (const layer of [baseLayer, playedLayer]) {
         const bar = document.createElement("span");
@@ -2401,7 +2501,7 @@ class ChatBubble {
 
     this._getWaveformPeaks(blob, WAVE_BARS).then((peaks) => {
       if (!peaks) return;
-      // Escala perceptual para que los tramos suaves no queden planos
+      // Aplicar escala perceptual para que los tramos suaves no queden planos
       peaks.forEach((p, i) => {
         const h = Math.max(0.18, Math.sqrt(p)).toFixed(2);
         bars[i * 2].style.setProperty("--h", h);
@@ -2467,7 +2567,7 @@ class ChatBubble {
       }
     });
 
-    // Control de velocidad a la derecha de la onda
+    // Ubicar control de velocidad a la derecha de la onda
     const RATES = [1, 1.5, 2];
     let rateIndex = 0;
     const speedBtn = document.createElement("button");
@@ -3465,6 +3565,16 @@ function initChatBubble() {
           "resize",
           window.__chatBubbleInstance._onWindowResize,
         );
+        document.removeEventListener(
+          "visibilitychange",
+          window.__chatBubbleInstance._onVisibilityChange,
+        );
+        document.removeEventListener(
+          "keydown",
+          window.__chatBubbleInstance._onDocumentKeydown,
+        );
+        window.__chatBubbleInstance._avatarVideoObserver?.disconnect();
+        window.__chatBubbleInstance._clearWaitingTimers();
         // Eliminar componente completo del DOM
         document.getElementById("chat-bubble-host")?.remove();
         window.__chatBubbleInstance = null;

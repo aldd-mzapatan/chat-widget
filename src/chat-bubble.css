@@ -21,31 +21,33 @@
   --cb-primary-light-a40: rgba(196, 166, 245, 0.4);
   --cb-sparkle-1: #e879f9;
   --cb-sparkle-2: #c084fc;
+  /* Derivar un violeta de la marca para tintes claros que no se lean rosados */
+  --cb-violet-a10: rgba(104, 74, 196, 0.1);
+  --cb-violet-a14: rgba(104, 74, 196, 0.14);
 
   --cb-primary-soft: var(--cb-primary-a12);
   --cb-link-color: var(--cb-primary);
-  --cb-badge-bg: var(--cb-primary-soft);
-  --cb-badge-text: var(--cb-primary);
-  --cb-badge-border: var(--cb-primary-a32);
 
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
-  --cb-attachment-bg: #e6e3ef;
-  --cb-bg-header: var(--cb-primary);
   --cb-text: #1a1025;
   --cb-text-secondary: #6e5f86;
   --cb-border: var(--cb-primary-a16);
-  --cb-border-strong: var(--cb-primary-a32);
-  --cb-surface-edge: rgba(26, 16, 37, 0.08);
+  --cb-surface-edge: rgba(26, 16, 37, 0.1);
   --cb-hover: rgba(26, 16, 37, 0.05);
   --cb-active: rgba(26, 16, 37, 0.09);
   --cb-composer-border: rgba(26, 16, 37, 0.14);
-  --cb-ambient-glow: var(--cb-primary-a12);
-  --cb-pattern-dot: var(--cb-primary-a16);
+  --cb-ambient-glow: var(--cb-violet-a10);
+  --cb-pattern-dot: var(--cb-violet-a14);
+
+  /* Teñir sutilmente el fondo de la conversación en claro para que burbujas y composer se eleven */
+  --cb-canvas: #f6f5fc;
+  --cb-bot-bubble-edge:
+    0 0 0 1px rgba(26, 16, 37, 0.06), 0 1px 2px rgba(16, 10, 30, 0.04);
 
   --cb-user-bubble: var(--cb-primary);
   --cb-user-text: #ffffff;
-  --cb-bot-bubble: #f3f1f7;
+  --cb-bot-bubble: #ffffff;
   --cb-bot-text: #1a1025;
 
   --cb-error-bubble: #fecdd3;
@@ -59,14 +61,16 @@
   --cb-shadow: var(--cb-elev-3);
   --cb-shadow-sm: var(--cb-elev-2);
   --cb-shadow-launcher:
-    0 7px 24px var(--cb-primary-a40), 0 2px 8px rgba(0, 0, 0, 0.08);
+    0 1px 2px rgba(16, 10, 30, 0.1), 0 8px 22px -4px var(--cb-primary-a40),
+    0 18px 36px -14px rgba(16, 10, 30, 0.3);
+  --cb-shadow-launcher-hover:
+    0 2px 4px rgba(16, 10, 30, 0.1), 0 12px 30px -4px var(--cb-primary-a40),
+    0 24px 44px -14px rgba(16, 10, 30, 0.34);
 
   /* Colores semánticos de estado */
   --cb-success: #22c55e;
-  --cb-online: #4ade80;
   --cb-danger: #ef4444;
   --cb-danger-bg: #fef2f2;
-  --cb-danger-soft: rgba(239, 68, 68, 0.3);
 
   /* Bloques de código */
   --cb-code-bg: #12101e;
@@ -107,10 +111,9 @@
 
   --cb-radius: 18px;
   --cb-radius-sm: 10px;
-  --cb-radius-bubble: 20px;
   --cb-window-width: 410px;
   --cb-window-height: 690px;
-  --cb-launcher-size: 52px;
+  --cb-launcher-size: 56px;
   --cb-spacing: 16px;
   --cb-font:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -165,6 +168,8 @@
     --cb-primary-light: oklch(from var(--cb-primary) 0.78 calc(c * 0.8) h);
     --cb-sparkle-1: oklch(from var(--cb-primary) 0.75 0.2 calc(h + 15));
     --cb-sparkle-2: oklch(from var(--cb-primary) 0.72 0.18 h);
+    --cb-violet-a10: oklch(from var(--cb-primary) 0.52 0.17 calc(h - 18) / 0.1);
+    --cb-violet-a14: oklch(from var(--cb-primary) 0.52 0.17 calc(h - 18) / 0.14);
   }
 }
 
@@ -173,12 +178,10 @@
   :host {
     --cb-bg: #1c1528;
     --cb-bg-secondary: #141020;
-    --cb-attachment-bg: #2e2540;
     --cb-link-color: var(--cb-primary-light);
     --cb-text: #f0ecf8;
     --cb-text-secondary: #9b8fb0;
     --cb-border: rgba(255, 255, 255, 0.08);
-    --cb-border-strong: rgba(255, 255, 255, 0.16);
     --cb-surface-edge: rgba(255, 255, 255, 0.08);
     --cb-hover: rgba(255, 255, 255, 0.06);
     --cb-active: rgba(255, 255, 255, 0.1);
@@ -187,13 +190,12 @@
     --cb-pattern-dot: rgba(255, 255, 255, 0.07);
     --cb-bot-bubble: #2a2239;
     --cb-bot-text: #ede9f5;
+    --cb-canvas: var(--cb-bg);
+    --cb-bot-bubble-edge: none;
     --cb-error-bubble: #2a0a14;
     --cb-error-text: #fb7185;
     --cb-error-border: rgba(251, 113, 133, 0.2);
     --cb-danger-bg: #2a0a14;
-    --cb-badge-bg: var(--cb-primary-light-a18);
-    --cb-badge-text: var(--cb-primary-light);
-    --cb-badge-border: var(--cb-primary-light-a40);
     --cb-elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
     --cb-elev-2: 0 4px 14px rgba(0, 0, 0, 0.35), 0 2px 5px rgba(0, 0, 0, 0.2);
     --cb-elev-3: 0 16px 48px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.25);
@@ -213,32 +215,31 @@
 
 /* Aplicar esquema de colores claro */
 :host-context([data-theme="light"]),
-#chat-bubble-window[data-theme="light"] {
+#chat-bubble-window[data-theme="light"],
+#chat-bubble-launcher[data-theme="light"] {
   --cb-hover: rgba(26, 16, 37, 0.05);
   --cb-active: rgba(26, 16, 37, 0.09);
   --cb-composer-border: rgba(26, 16, 37, 0.14);
-  --cb-ambient-glow: var(--cb-primary-a12);
-  --cb-pattern-dot: var(--cb-primary-a16);
+  --cb-ambient-glow: var(--cb-violet-a10);
+  --cb-pattern-dot: var(--cb-violet-a14);
+  --cb-canvas: #f6f5fc;
+  --cb-bot-bubble-edge:
+    0 0 0 1px rgba(26, 16, 37, 0.06), 0 1px 2px rgba(16, 10, 30, 0.04);
   --cb-shadow: var(--cb-elev-3);
   --cb-shadow-sm: var(--cb-elev-2);
   --cb-bg: #ffffff;
   --cb-bg-secondary: #f6f5fa;
-  --cb-attachment-bg: #e6e3ef;
   --cb-link-color: var(--cb-primary);
   --cb-text: #1a1025;
   --cb-text-secondary: #6e5f86;
   --cb-border: var(--cb-primary-a16);
-  --cb-border-strong: var(--cb-primary-a32);
-  --cb-surface-edge: rgba(26, 16, 37, 0.08);
-  --cb-bot-bubble: #f3f1f7;
+  --cb-surface-edge: rgba(26, 16, 37, 0.1);
+  --cb-bot-bubble: #ffffff;
   --cb-bot-text: #1a1025;
   --cb-error-bubble: #fecdd3;
   --cb-error-text: #be123c;
   --cb-error-border: rgba(190, 18, 60, 0.35);
   --cb-danger-bg: #fef2f2;
-  --cb-badge-bg: var(--cb-primary-soft);
-  --cb-badge-text: var(--cb-primary);
-  --cb-badge-border: var(--cb-primary-a32);
   --cb-elev-1: 0 1px 2px rgba(16, 10, 30, 0.06), 0 1px 3px rgba(16, 10, 30, 0.04);
   --cb-elev-2: 0 4px 14px rgba(16, 10, 30, 0.08), 0 2px 5px rgba(16, 10, 30, 0.04);
   --cb-elev-3: 0 16px 48px rgba(16, 10, 30, 0.15), 0 2px 12px rgba(16, 10, 30, 0.06);
@@ -257,17 +258,16 @@
 
 /* Forzar esquema de colores oscuro */
 :host-context([data-theme="dark"]),
-#chat-bubble-window[data-theme="dark"] {
+#chat-bubble-window[data-theme="dark"],
+#chat-bubble-launcher[data-theme="dark"] {
   --cb-shadow: var(--cb-elev-3);
   --cb-shadow-sm: var(--cb-elev-2);
   --cb-bg: #1c1528;
   --cb-bg-secondary: #141020;
-  --cb-attachment-bg: #2e2540;
   --cb-link-color: var(--cb-primary-light);
   --cb-text: #f0ecf8;
   --cb-text-secondary: #9b8fb0;
   --cb-border: rgba(255, 255, 255, 0.08);
-  --cb-border-strong: rgba(255, 255, 255, 0.16);
   --cb-surface-edge: rgba(255, 255, 255, 0.08);
   --cb-hover: rgba(255, 255, 255, 0.06);
   --cb-active: rgba(255, 255, 255, 0.1);
@@ -276,13 +276,12 @@
   --cb-pattern-dot: rgba(255, 255, 255, 0.07);
   --cb-bot-bubble: #2a2239;
   --cb-bot-text: #ede9f5;
+  --cb-canvas: var(--cb-bg);
+  --cb-bot-bubble-edge: none;
   --cb-error-bubble: #2a0a14;
   --cb-error-text: #fb7185;
   --cb-error-border: rgba(251, 113, 133, 0.2);
   --cb-danger-bg: #2a0a14;
-  --cb-badge-bg: var(--cb-primary-light-a18);
-  --cb-badge-text: var(--cb-primary-light);
-  --cb-badge-border: var(--cb-primary-light-a40);
   --cb-elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
   --cb-elev-2: 0 4px 14px rgba(0, 0, 0, 0.35), 0 2px 5px rgba(0, 0, 0, 0.2);
   --cb-elev-3: 0 16px 48px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.25);
@@ -304,7 +303,8 @@
 .cb-msg-avatar img,
 .cb-agent-intro-avatar img,
 .cb-agent-intro-avatar video,
-.cb-launcher-avatar {
+.cb-launcher-avatar,
+.cb-launcher-video {
   -webkit-user-drag: none;
   -webkit-user-select: none;
   user-select: none;
@@ -359,42 +359,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--cb-shadow-launcher);
-  transition: transform 0.3s ease;
+  /* Separar el avatar del anillo IA con un aro del color de superficie */
+  box-shadow:
+    0 0 0 2px var(--cb-bg),
+    var(--cb-shadow-launcher);
+  transition:
+    transform 0.3s var(--cb-ease-out-spring),
+    box-shadow 0.3s var(--cb-ease-standard),
+    background-color 0.25s var(--cb-ease-standard),
+    color 0.25s var(--cb-ease-standard);
   position: relative;
   overflow: visible;
-  animation: cb-launcher-breathe 3s ease-in-out infinite;
+  animation: cb-launcher-enter 0.6s 0.15s var(--cb-ease-out-spring) backwards;
 }
 
-/* Pausar la respiración mientras el chat está abierto: solo tiene sentido llamar la atención con el chat cerrado */
-.cb-launcher-btn.cb-is-open {
-  animation-play-state: paused;
-}
-
-/* Aura que respira: pulsa un anillo exterior con color primario sin escalar el botón */
-@keyframes cb-launcher-breathe {
-  0%,
-  100% {
-    box-shadow:
-      0 7px 24px var(--cb-primary-a40),
-      0 2px 8px rgba(0, 0, 0, 0.08),
-      0 0 0 0 var(--cb-primary-a32);
+/* Entrar con un pop sutil al cargar la página */
+@keyframes cb-launcher-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.6);
   }
-  50% {
-    box-shadow:
-      0 7px 24px var(--cb-primary-a40),
-      0 2px 8px rgba(0, 0, 0, 0.08),
-      0 0 12px 4px var(--cb-primary-a32);
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
-/* Efecto de zoom sutil al pasar el cursor — entrada y salida gestionadas por transition */
+/* Elevar el botón al pasar el cursor */
 .cb-launcher-btn:hover {
-  transform: scale(1.08);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 0 0 2px var(--cb-bg),
+    var(--cb-shadow-launcher-hover);
 }
 
 .cb-launcher-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.95);
+  transition-duration: 0.12s;
 }
 
 .cb-icon-chat,
@@ -414,10 +415,10 @@
   border-radius: 50%;
 }
 
-.cb-launcher-btn svg {
+.cb-icon-chat svg,
+.cb-icon-close svg {
   width: var(--cb-icon-size-md);
   height: var(--cb-icon-size-md);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
 .cb-launcher-avatar {
@@ -426,6 +427,22 @@
   border-radius: 50%;
   object-fit: cover;
   pointer-events: none;
+}
+
+/* Superponer el video del avatar sobre la foto cuando ya puede reproducirse */
+.cb-launcher-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.cb-icon-chat.cb-is-playing .cb-launcher-video {
+  opacity: 1;
 }
 
 .cb-launcher-btn .cb-icon-chat {
@@ -445,117 +462,207 @@
   transform: scale(1) rotate(0deg);
 }
 
-/* Configurar estrellas IA (sparkles) como elementos decorativos alrededor del botón */
-.cb-sparkle {
+/* Dibujar anillo IA con degradado cónico que gira lentamente */
+.cb-launcher-halo {
   position: absolute;
+  inset: -3.5px;
+  border-radius: 50%;
+  opacity: 0.75;
+  background: conic-gradient(
+    var(--cb-primary),
+    var(--cb-sparkle-1),
+    var(--cb-sparkle-2),
+    var(--cb-primary-light),
+    var(--cb-primary)
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+  pointer-events: none;
+  animation: cb-halo-spin 14s linear infinite;
+  transition: opacity 0.25s ease;
+}
+
+@keyframes cb-halo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cb-launcher-btn:hover .cb-launcher-halo {
+  opacity: 1;
+  animation-duration: 4s;
+}
+
+/* Mostrar chip de sparkle que identifica al asistente como IA */
+.cb-launcher-ai {
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  background: var(--cb-bg);
+  color: var(--cb-link-color);
+  box-shadow: var(--cb-elev-2);
   pointer-events: none;
-  opacity: 0;
-  z-index: 10;
-  will-change: transform, opacity;
-  animation-fill-mode: both;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s var(--cb-ease-out-spring);
 }
 
-.cb-sparkle svg {
-  display: block;
-  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 6px currentColor);
-}
-
-/* Posicionar arriba-derecha */
-.cb-sparkle--1 {
-  width: 16px;
-  height: 16px;
-  top: -9px;
-  right: -4px;
-  color: var(--cb-sparkle-1);
-  animation: cb-sparkle-pro 3.6s 0s ease-in-out infinite;
-  animation-fill-mode: both;
-}
-
-/* Posicionar abajo-izquierda */
-.cb-sparkle--3 {
-  width: 9px;
-  height: 9px;
-  bottom: -6px;
-  left: 1px;
-  color: var(--cb-sparkle-2);
-  animation: cb-sparkle-pro 3.6s 1.2s ease-in-out infinite;
-  animation-fill-mode: both;
-}
-
-/* Posicionar abajo-derecha */
-.cb-sparkle--5 {
+.cb-launcher-ai svg {
   width: 11px;
   height: 11px;
-  bottom: -4px;
-  right: -3px;
-  color: var(--cb-sparkle-2);
-  animation: cb-sparkle-pro 3.6s 2.4s ease-in-out infinite;
-  animation-fill-mode: both;
+  animation: cb-ai-twinkle 4.8s var(--cb-ease-standard) infinite;
 }
 
-@keyframes cb-sparkle-pro {
-  0% {
-    opacity: 0;
-    transform: scale(0.3) rotate(-10deg);
-  }
-  15% {
-    opacity: 0;
-    transform: scale(0.3) rotate(-10deg);
-  }
-  40% {
-    opacity: 0.95;
-    transform: scale(1.15) rotate(15deg);
-  }
-  60% {
-    opacity: 0.7;
-    transform: scale(1) rotate(8deg);
+@keyframes cb-ai-twinkle {
+  0%,
+  70%,
+  100% {
+    transform: scale(1) rotate(0deg);
   }
   80% {
-    opacity: 0;
-    transform: scale(0.4) rotate(20deg);
+    transform: scale(1.3) rotate(90deg);
   }
-  100% {
-    opacity: 0;
-    transform: scale(0.3) rotate(-10deg);
+  90% {
+    transform: scale(0.9) rotate(180deg);
   }
 }
 
-/* Aplicar hover con aceleración sutil sin filtros adicionales */
-.cb-launcher-btn:hover .cb-sparkle--1 {
-  animation-duration: 1.4s;
-}
-.cb-launcher-btn:hover .cb-sparkle--3 {
-  animation-duration: 1.6s;
-}
-.cb-launcher-btn:hover .cb-sparkle--5 {
-  animation-duration: 1.2s;
-}
-
-/* Configurar estado abierto: apagar sparkles y detener su animación (no solo ocultarla) */
-.cb-launcher-btn.cb-is-open .cb-sparkle {
-  opacity: 0 !important;
+/* Ocultar decoraciones IA mientras el chat está abierto */
+.cb-launcher-btn.cb-is-open .cb-launcher-halo,
+.cb-launcher-btn.cb-is-open .cb-launcher-ai {
+  opacity: 0;
   animation-play-state: paused;
-  transition: opacity 0.18s ease;
+}
+
+.cb-launcher-btn.cb-is-open .cb-launcher-ai {
+  transform: scale(0.4);
+}
+
+.cb-launcher-btn.cb-is-open .cb-launcher-ai svg {
+  animation-play-state: paused;
+}
+
+/* Convertir el botón en un control neutro con el chat abierto: el protagonista es la ventana */
+.cb-launcher-btn.cb-is-open {
+  background-color: var(--cb-bg);
+  color: var(--cb-text-secondary);
+  box-shadow:
+    0 0 0 1px var(--cb-composer-border),
+    var(--cb-elev-2);
+}
+
+.cb-launcher-btn.cb-is-open .cb-icon-close svg {
+  width: 22px;
+  height: 22px;
+}
+
+.cb-launcher-btn.cb-is-open:hover {
+  transform: translateY(-1px);
+  /* Superponer el tono de hover para que funcione igual en claro y oscuro */
+  background-image: linear-gradient(var(--cb-hover), var(--cb-hover));
+  color: var(--cb-text);
+  box-shadow:
+    0 0 0 1px var(--cb-composer-border),
+    var(--cb-elev-3);
+}
+
+.cb-launcher-btn.cb-is-open:active {
+  transform: scale(0.95);
+}
+
+/* Mostrar etiqueta flotante junto al botón al pasar el cursor */
+.cb-launcher-label {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 14px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--cb-bg);
+  color: var(--cb-text);
+  font-size: var(--cb-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--cb-elev-2);
+  outline: 1px solid var(--cb-surface-edge);
+  outline-offset: -1px;
+  opacity: 0;
+  transform: translate(6px, -50%);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.25s var(--cb-ease-out-spring);
+}
+
+#chat-bubble-launcher.cb-position--left .cb-launcher-label {
+  right: auto;
+  left: calc(100% + 14px);
+  transform: translate(-6px, -50%);
+}
+
+@media (hover: hover) {
+  #chat-bubble-launcher:not(.cb-launcher--open):not(.cb-is-dragging):hover
+    .cb-launcher-label {
+    opacity: 1;
+    transform: translate(0, -50%);
+    transition-delay: 0.25s;
+  }
 }
 
 /* Configurar indicador visual de notificaciones nuevas */
 .cb-notification-badge {
   position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 13px;
-  height: 13px;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--cb-success);
+  background: var(--cb-danger);
+  border: 2.5px solid var(--cb-bg);
   display: none;
   z-index: 2;
+  pointer-events: none;
 }
 
 .cb-notification-badge.cb-visible {
   display: block;
+  animation: cb-badge-pop 0.45s var(--cb-ease-spring) both;
+}
+
+/* Emitir una onda periódica para captar la atención sin ser invasivo */
+.cb-notification-badge.cb-visible::after {
+  content: "";
+  position: absolute;
+  inset: -2.5px;
+  border-radius: 50%;
+  background: var(--cb-danger);
+  animation: cb-badge-ping 2.4s 0.5s ease-out infinite;
+}
+
+@keyframes cb-badge-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes cb-badge-ping {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  60%,
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
 }
 
 /* Configurar contenedor principal del chat */
@@ -642,9 +749,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cb-launcher-btn,
-  .cb-sparkle--1,
-  .cb-sparkle--3,
-  .cb-sparkle--5,
+  .cb-launcher-halo,
+  .cb-launcher-ai svg,
+  .cb-notification-badge,
+  .cb-scroll-bottom-btn.cb-has-new svg,
+  .cb-message-content.cb-is-highlighted,
   .cb-typing-dot,
   .cb-thinking-icon,
   .cb-typing-wrapper.cb-visible .cb-msg-avatar::before,
@@ -655,6 +764,10 @@
   .cb-streaming-cursor {
     animation: none;
     opacity: 1;
+  }
+
+  .cb-notification-badge::after {
+    display: none;
   }
 
   .cb-thinking-text {
@@ -1003,14 +1116,14 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background-color: var(--cb-bg);
+  background-color: var(--cb-canvas);
   background-image:
     radial-gradient(
       ellipse 90% 55% at 50% 0%,
       var(--cb-ambient-glow) 0%,
       transparent 70%
     ),
-    linear-gradient(to bottom, transparent 0%, var(--cb-bg) 65%),
+    linear-gradient(to bottom, transparent 0%, var(--cb-canvas) 65%),
     radial-gradient(circle, var(--cb-pattern-dot) 1px, transparent 1.5px);
   background-size:
     100% 100%,
@@ -1068,6 +1181,7 @@
 }
 
 .cb-message--bot {
+  position: relative;
   align-self: stretch;
   align-items: flex-start;
   max-width: 100%;
@@ -1138,6 +1252,7 @@
   background: var(--cb-bot-bubble);
   color: var(--cb-bot-text);
   border-radius: 6px 18px 18px 18px;
+  box-shadow: var(--cb-bot-bubble-edge);
 }
 
 /* Diseñar burbuja de mensaje del usuario */
@@ -1423,6 +1538,7 @@
   padding: 13px 16px;
   background: var(--cb-bot-bubble);
   border-radius: 6px 18px 18px 18px;
+  box-shadow: var(--cb-bot-bubble-edge);
   align-self: flex-start;
   animation: cb-message-appear 0.25s ease-out both;
 }
@@ -1485,7 +1601,7 @@
   display: flex;
   align-items: flex-end;
   padding: 8px 12px 12px;
-  background: var(--cb-bg);
+  background: var(--cb-canvas);
   flex-shrink: 0;
   position: relative;
 }
@@ -1831,35 +1947,46 @@
 /* Diseñar botón flotante para volver al fondo */
 .cb-scroll-bottom-btn {
   position: absolute;
-  bottom: calc(100% + 12px);
+  bottom: calc(100% + 10px);
   left: 50%;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  border-radius: 999px;
   background: var(--cb-bg);
-  border: 1px solid var(--cb-border);
+  border: 1px solid var(--cb-composer-border);
   color: var(--cb-text-secondary);
+  font-family: var(--cb-font);
+  font-size: var(--cb-text-xs);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.08),
-    0 2px 5px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--cb-elev-2);
   z-index: 10;
-  padding: 0;
 
   /* Configurar transición de entrada y salida del botón flotante */
   opacity: 0;
-  transform: translateX(-50%) translateY(8px) scale(0.8);
+  transform: translateX(-50%) translateY(8px) scale(0.85);
   pointer-events: none;
   transition:
-    opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    background var(--cb-transition),
+    opacity 0.22s var(--cb-ease-standard),
+    transform 0.25s var(--cb-ease-out-spring),
+    background-color var(--cb-transition),
+    border-color var(--cb-transition),
     color var(--cb-transition),
     box-shadow var(--cb-transition),
-    bottom 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    bottom 0.22s var(--cb-ease-standard);
+}
+
+/* Aplicar efecto translúcido para no tapar el texto de golpe */
+@supports (backdrop-filter: blur(1px)) and (color: color-mix(in srgb, red, blue)) {
+  .cb-scroll-bottom-btn {
+    background: color-mix(in srgb, var(--cb-bg) 82%, transparent);
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
+    backdrop-filter: blur(10px) saturate(1.4);
+  }
 }
 
 .cb-scroll-bottom-btn.cb-visible {
@@ -1868,31 +1995,66 @@
   pointer-events: all;
 }
 
-.cb-reply-preview.cb-visible + .cb-input-area .cb-scroll-bottom-btn {
-  bottom: calc(100% + 62px);
-}
-
 .cb-scroll-bottom-btn:hover {
-  background: var(--cb-bg-secondary);
-  color: var(--cb-primary);
-  box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.12),
-    0 3px 6px rgba(0, 0, 0, 0.05);
-  transform: translateX(-50%) translateY(-2px) scale(1.05);
+  color: var(--cb-text);
+  box-shadow: var(--cb-elev-3);
 }
 
 .cb-scroll-bottom-btn:active {
-  transform: translateX(-50%) translateY(0) scale(0.95);
+  transform: translateX(-50%) scale(0.94);
 }
 
 .cb-scroll-bottom-btn svg {
-  width: var(--cb-icon-size-sm);
-  height: var(--cb-icon-size-sm);
-  transition: transform 0.22s ease;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.22s var(--cb-ease-standard);
 }
 
 .cb-scroll-bottom-btn:hover svg {
   transform: translateY(1.5px);
+}
+
+/* Ocultar la etiqueta hasta que haya contenido nuevo */
+.cb-scroll-bottom-label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    max-width 0.28s var(--cb-ease-standard),
+    opacity 0.2s ease,
+    margin 0.28s var(--cb-ease-standard);
+}
+
+/* Expandir a píldora con color primario cuando llega una respuesta fuera de vista */
+.cb-scroll-bottom-btn.cb-has-new {
+  padding: 0 14px 0 10px;
+  background: var(--cb-primary);
+  border-color: transparent;
+  color: var(--cb-primary-text);
+  box-shadow: 0 6px 18px -4px var(--cb-primary-a40);
+}
+
+.cb-scroll-bottom-btn.cb-has-new .cb-scroll-bottom-label {
+  max-width: 140px;
+  margin-left: 6px;
+  opacity: 1;
+}
+
+.cb-scroll-bottom-btn.cb-has-new svg {
+  animation: cb-scroll-nudge 1.6s var(--cb-ease-standard) infinite;
+}
+
+@keyframes cb-scroll-nudge {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(2px);
+  }
 }
 
 .cb-scroll-bottom-btn:focus-visible {
@@ -2078,75 +2240,99 @@
   word-break: break-word;
 }
 
-/* Posicionar mensaje del asistente como referencia de capas */
-.cb-message--bot {
-  position: relative;
-}
-
-/* Configurar barra inferior de mensaje seleccionado */
-
+/* Mostrar la cita como tarjeta dentro del composer, igual que el adjunto */
 .cb-reply-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px 8px 10px;
-  background: var(--cb-bg-secondary);
-  border-top: 1px solid var(--cb-border);
-  flex-shrink: 0;
-
   max-height: 0;
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
   transition:
-    max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.18s ease,
-    padding 0.22s ease;
-  padding-top: 0;
-  padding-bottom: 0;
+    max-height 0.22s var(--cb-ease-standard),
+    opacity 0.18s ease;
 }
 
 .cb-reply-preview.cb-visible {
-  max-height: 80px;
+  max-height: 90px;
   opacity: 1;
-  pointer-events: all;
-  padding: 8px 12px 8px 10px;
+  pointer-events: auto;
 }
 
-/* Diseñar indicador lateral de cita */
-.cb-reply-bar {
-  width: 3px;
-  min-height: 32px;
-  background: var(--cb-primary);
-  flex-shrink: 0;
-  opacity: 0.7;
+.cb-reply-chip {
+  position: relative;
+  margin: 3px 3px 4px;
 }
 
-.cb-reply-content {
-  flex: 1;
-  min-width: 0;
+.cb-reply-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 7px 34px 8px 14px;
+  border-radius: 14px;
+  background: var(--cb-primary-a08);
+  outline: 1px solid var(--cb-primary-a16);
+  outline-offset: -1px;
+  cursor: default;
+  transition: background-color var(--cb-transition);
+}
+
+/* Dibujar barra lateral redondeada de la cita */
+.cb-reply-card::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--cb-link-color);
+}
+
+.cb-reply-card.cb-is-linked {
+  cursor: pointer;
+}
+
+.cb-reply-card.cb-is-linked:hover {
+  background: var(--cb-primary-a12);
 }
 
 .cb-reply-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: var(--cb-text-2xs);
+  color: var(--cb-text-secondary);
+  line-height: 1.3;
+}
+
+.cb-reply-label svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--cb-link-color);
+}
+
+.cb-reply-label strong {
   font-weight: 700;
-  color: var(--cb-primary);
-  letter-spacing: 0.01em;
+  color: var(--cb-link-color);
 }
 
 .cb-reply-text {
   font-size: var(--cb-text-xs);
-  color: var(--cb-text-secondary);
-  white-space: nowrap;
+  color: var(--cb-text);
+  line-height: 1.45;
   overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .cb-reply-cancel {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -2158,14 +2344,13 @@
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  flex-shrink: 0;
   transition:
-    background var(--cb-transition),
+    background-color var(--cb-transition),
     color var(--cb-transition);
 }
 
 .cb-reply-cancel:hover {
-  background: var(--cb-border);
+  background: var(--cb-active);
   color: var(--cb-text);
 }
 
@@ -2174,27 +2359,55 @@
   height: 12px;
 }
 
-/* Formatear bloque de texto citado en la burbuja */
+/* Resaltar brevemente el mensaje al que se salta desde una cita */
+.cb-message-content.cb-is-highlighted {
+  animation: cb-msg-highlight 1.6s var(--cb-ease-standard);
+}
 
+@keyframes cb-msg-highlight {
+  0%,
+  35% {
+    box-shadow: 0 0 0 3px var(--cb-primary-a32);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+/* Formatear bloque de texto citado en la burbuja */
 .cb-message-quote {
+  position: relative;
   display: flex;
   align-items: stretch;
-  gap: 7px;
-  margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 6px 10px;
+  gap: 8px;
+  margin: 0 0 7px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
   max-width: 100%;
+  cursor: pointer;
+  transition: background-color var(--cb-transition);
+}
+
+.cb-message-quote:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.cb-message-quote:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
 }
 
 .cb-message-quote-bar {
-  width: 2.5px;
-  background: rgba(255, 255, 255, 0.7);
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.75);
   flex-shrink: 0;
 }
 
 .cb-message-quote-text {
   font-size: var(--cb-text-xs);
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.45;
   overflow: hidden;
   display: -webkit-box;
@@ -2215,7 +2428,7 @@
   overflow: visible;
 }
 
-/* Destello de marca que gira y respira junto al texto de estado */
+/* Animar destello de marca junto al texto de estado */
 .cb-thinking-icon {
   display: flex;
   width: 14px;
@@ -2275,7 +2488,7 @@
   }
 }
 
-/* Anillo de marca girando alrededor del avatar mientras el asistente procesa */
+/* Girar anillo de marca alrededor del avatar mientras el asistente procesa */
 .cb-typing-wrapper .cb-msg-avatar {
   position: relative;
   overflow: visible;
@@ -2423,7 +2636,7 @@
   flex-shrink: 0;
 }
 
-/* Punto de grabación con halo pulsante */
+/* Mostrar punto de grabación con halo pulsante */
 .cb-recording-dot {
   position: relative;
   width: 8px;
@@ -2467,7 +2680,7 @@
   color: var(--cb-danger);
 }
 
-/* Onda desplazable: barras fijas escaladas verticalmente */
+/* Dibujar onda desplazable con barras fijas escaladas verticalmente */
 .cb-recording-wave {
   flex: 1;
   min-width: 0;
@@ -2614,7 +2827,7 @@
   height: 16px;
 }
 
-/* Onda en dos capas: la reproducida se recorta según --p para un avance continuo */
+/* Dibujar onda en dos capas; la reproducida se recorta según --p para un avance continuo */
 .cb-audio-wave {
   --p: 0%;
   position: relative;
@@ -2656,7 +2869,7 @@
   background: #fff;
 }
 
-/* Perilla de posición: aparece al iniciar la reproducción o al buscar */
+/* Mostrar perilla de posición al iniciar la reproducción o al buscar */
 .cb-audio-knob {
   position: absolute;
   top: 50%;
@@ -2682,7 +2895,7 @@
   transform: scale(1.25);
 }
 
-/* Control de velocidad tipo píldora */
+/* Diseñar control de velocidad tipo píldora */
 .cb-audio-speed {
   flex-shrink: 0;
   min-width: 36px;
@@ -2902,7 +3115,7 @@
   flex-shrink: 0;
 }
 
-/* Botones de confirmación: secundario neutro y primario destructivo */
+/* Diferenciar botones de confirmación: secundario neutro y primario destructivo */
 .cb-history-item-confirm-no,
 .cb-history-item-confirm-yes {
   font-family: var(--cb-font);
