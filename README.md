@@ -102,10 +102,14 @@ window.ChatBubbleConfig = {
 | `bot.welcomeMessage`        | `string`                  | `'¡Hola!'`         | Mensaje de bienvenida                           |
 | `bot.offlineMessage`        | `string`                  | `'Sin conexión'`   | Mensaje al fallar la conexión                   |
 | `bot.typingText`            | `string`                  | `'Escribiendo...'` | Aria-label del indicador de escritura           |
+| `bot.statusText`            | `string`                  | `'En línea'`       | Estado bajo el nombre en la cabecera (vacío lo oculta) |
+| `bot.inputPlaceholder`      | `string`                  | `'Pregúntale a {name}'` | Texto de ayuda del campo de mensaje        |
+| `bot.suggestions`           | `string[]`                | `[]`               | Preguntas sugeridas que se muestran bajo el saludo hasta el primer mensaje |
+| `bot.thinkingSteps`         | `{ after: number, text: string }[]` | 4 etapas (3 s, 8 s, 15 s, 30 s) | Textos de espera que se muestran según los milisegundos transcurridos sin respuesta |
 | `style.primaryColor`        | `string`                  | `'#6366f1'`        | Color de marca (hex)                            |
 | `style.textColor`           | `string`                  | `'#ffffff'`        | Color de texto sobre `primaryColor`             |
 | `style.position`            | `'right'\|'left'`         | `'right'`          | Alineación horizontal                           |
-| `style.borderRadius`        | `string`                  | `'12px'`           | Radio de bordes                                 |
+| `style.borderRadius`        | `string`                  | `'18px'`           | Radio de bordes                                 |
 | `style.fontFamily`          | `string`                  | `'inherit'`        | Fuente CSS                                      |
 | `style.theme`               | `'auto'\|'light'\|'dark'` | `'auto'`           | Modo de color                                   |
 | `behavior.openOnLoad`       | `boolean`                 | `false`            | Abrir el chat al cargar la página               |

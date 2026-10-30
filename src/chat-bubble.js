@@ -20,7 +20,7 @@ import {
 } from "./utils/api.js";
 import {
   AudioRecorder,
-  formatDuration,
+  MAX_RECORDING_SECONDS,
   isAudioRecordingSupported,
   blobToBase64,
   base64ToBlob,
@@ -37,7 +37,38 @@ const ICONS = {
     <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
   </svg>`,
 
-  reply: "",
+  reply: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11Z" />
+  </svg>`,
+
+  stop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <rect x="6.5" y="6.5" width="11" height="11" rx="2.5"></rect>
+  </svg>`,
+
+  sparkle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+    <path d="M6 0C6.3 3.5 8.5 5.7 12 6C8.5 6.3 6.3 8.5 6 12C5.7 8.5 3.5 6.3 0 6C3.5 5.7 5.7 3.5 6 0Z"/>
+  </svg>`,
+
+  arrowLeft: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="19" y1="12" x2="5" y2="12"></line>
+    <polyline points="12 19 5 12 12 5"></polyline>
+  </svg>`,
+
+  copy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="9" y="9" width="12" height="12" rx="2.5"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>`,
+
+  check: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>`,
+
+  retry: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"></path>
+    <polyline points="21 3 21 8 16 8"></polyline>
+    <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path>
+    <polyline points="3 21 3 16 8 16"></polyline>
+  </svg>`,
 
   history: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-9-9c2.39 0 4.68.94 6.4 2.6L20 6.5M20 6.5H15M20 6.5V2" />
@@ -125,12 +156,21 @@ const DEFAULT_CONFIG = {
       "Hola, soy Ali 👋. Tu asistente virtual de Aliaddo ¿Como puedo ayudarte?",
     offlineMessage: "En este momento no estoy disponible. Inténtalo más tarde.",
     typingText: "Escribiendo...",
+    statusText: "En línea",
+    inputPlaceholder: null,
+    suggestions: [],
+    thinkingSteps: [
+      { after: 3000, text: "Pensando…" },
+      { after: 8000, text: "Revisando la información…" },
+      { after: 15000, text: "Preparando tu respuesta…" },
+      { after: 30000, text: "Está tardando más de lo normal…" },
+    ],
   },
   style: {
     primaryColor: "#572b86",
     textColor: "#ffffff",
     position: "right",
-    borderRadius: "12px",
+    borderRadius: "18px",
     fontFamily: "inherit",
     theme: "auto",
   },
@@ -156,6 +196,8 @@ class ChatBubble {
     this.chatHistory = [];
     // Guardar referencia al mensaje seleccionado
     this.replyingTo = null;
+    this._waitTimers = [];
+    this._stopRequested = false;
 
     // Guardar imagen adjunta pendiente de envío
     this.pendingImage = null;
@@ -239,6 +281,7 @@ class ChatBubble {
         this._addBotMessage(msg.text, dateObj, false, false); // isAnimated=false
       }
     }
+    this._showSuggestions();
     this._scrollToBottom();
   }
 
@@ -281,11 +324,15 @@ class ChatBubble {
     this.window.innerHTML = `
       <div class="cb-header" id="cb-header">
         <div class="cb-header-info">
+          <button class="cb-header-back-btn" id="cb-header-back-btn" aria-label="Volver al chat" title="Volver al chat">
+            ${ICONS.arrowLeft}
+          </button>
           <div class="cb-avatar" id="cb-avatar"></div>
-          <div>
+          <div class="cb-header-text">
             <span class="cb-bot-name" id="cb-bot-name">${this._escapeAttr(this.config.bot.name)}</span>
-            <span class="cb-status">En línea</span>
+            <span class="cb-status">${this._escapeAttr(this.config.bot.statusText || "")}</span>
           </div>
+          <span class="cb-header-title" id="cb-header-title">Conversaciones</span>
         </div>
         <div class="cb-header-actions">
           <div class="cb-actions-dropdown" id="cb-actions-dropdown">
@@ -332,21 +379,19 @@ class ChatBubble {
             ${this.config.bot.avatar ? `<img src="${this._escapeAttr(this.config.bot.avatar)}" alt="${this._escapeAttr(this.config.bot.name)}">` : ICONS.bot}
           </div>
           <div class="cb-msg-col">
-            <div class="cb-typing-indicator" role="status" aria-label="${this._escapeAttr(this.config.bot.typingText)}" aria-live="polite">
-              <span></span><span></span><span></span>
-            </div>
+            <div class="cb-typing-indicator" role="status" aria-live="polite"></div>
           </div>
         </div>
       </div>
 
       <div class="cb-history-panel" id="cb-history-panel" aria-hidden="true">
-        <div class="cb-history-panel-header">
-          <span class="cb-history-panel-title" id="cb-history-panel-title">Conversaciones</span>
-          <button class="cb-history-panel-close" id="cb-history-panel-close" aria-label="Cerrar panel de historial">
-            ${ICONS.close}
+        <div class="cb-history-panel-top">
+          <button class="cb-history-new-btn" id="cb-history-new-btn">
+            ${ICONS.newSession}
+            <span>Nueva conversación</span>
           </button>
         </div>
-        <div class="cb-history-list" id="cb-history-list"></div>
+        <div class="cb-history-list" id="cb-history-list" aria-labelledby="cb-header-title"></div>
         <div class="cb-history-panel-footer cb-is-hidden" id="cb-history-panel-footer">
           <button class="cb-history-clear-btn" id="cb-history-clear-btn" aria-label="Borrar todas las conversaciones">
             ${ICONS.trash} Borrar todo
@@ -355,8 +400,10 @@ class ChatBubble {
       </div>
 
       <div class="cb-clear-all-overlay cb-is-hidden" id="cb-clear-all-overlay" aria-hidden="true">
-        <div class="cb-clear-all-dialog" id="cb-clear-all-dialog" role="alertdialog" aria-modal="true" aria-labelledby="cb-clear-all-text">
+        <div class="cb-clear-all-dialog" id="cb-clear-all-dialog" role="alertdialog" aria-modal="true" tabindex="-1" aria-labelledby="cb-clear-all-text" aria-describedby="cb-clear-all-desc">
+          <div class="cb-clear-all-icon" aria-hidden="true">${ICONS.trash}</div>
           <p class="cb-clear-all-text" id="cb-clear-all-text">¿Borrar todas las conversaciones?</p>
+          <p class="cb-clear-all-desc" id="cb-clear-all-desc"></p>
           <div class="cb-clear-all-actions">
             <button class="cb-history-item-confirm-no" id="cb-clear-all-cancel-btn">Cancelar</button>
             <button class="cb-history-item-confirm-yes" id="cb-clear-all-confirm-btn">Borrar todo</button>
@@ -375,39 +422,44 @@ class ChatBubble {
         </button>
       </div>
 
-      <div class="cb-attachment-preview" id="cb-attachment-preview" aria-hidden="true">
-        <div class="cb-attachment-thumb" id="cb-attachment-thumb" role="button" tabindex="0" aria-label="Ver imagen ampliada" title="Ver imagen ampliada"></div>
-        <div class="cb-attachment-info">
-          <span class="cb-attachment-name" id="cb-attachment-name"></span>
-          <span class="cb-attachment-hint">Imagen adjunta</span>
-        </div>
-        <button class="cb-attachment-remove" id="cb-attachment-remove" aria-label="Quitar imagen adjunta" title="Quitar imagen">
-          ${ICONS.close}
-        </button>
-      </div>
-
       <div class="cb-input-area">
         <button id="cb-scroll-bottom-btn" class="cb-scroll-bottom-btn" aria-label="Desplazarse hacia abajo">
           ${ICONS.chevronDown}
         </button>
-        <button id="cb-attach-btn" class="cb-attach-btn" aria-label="Adjuntar imagen" title="Adjuntar imagen">
-          ${ICONS.attach}
-        </button>
-        <input type="file" id="cb-file-input" class="cb-file-input-hidden" accept="image/png,image/jpeg,image/webp,image/bmp,image/heic,image/heif" tabindex="-1" aria-hidden="true" />
-        <textarea
-          id="cb-input"
-          placeholder="Preguntarle a Ali"
-          rows="1"
-          maxlength="${this.config.behavior.maxMessageLength}"
-          aria-label="Escribe tu mensaje"
-          aria-multiline="true"
-        ></textarea>
-        <button id="cb-mic-btn" class="cb-mic-btn" aria-label="Grabar mensaje de voz" title="Grabar audio">
-          ${ICONS.mic}
-        </button>
-        <button id="cb-send-btn" aria-label="Enviar mensaje">
-          ${ICONS.send}
-        </button>
+        <div class="cb-composer">
+          <div class="cb-attachment-preview" id="cb-attachment-preview" aria-hidden="true">
+            <div class="cb-attachment-chip">
+              <div class="cb-attachment-thumb" id="cb-attachment-thumb" role="button" tabindex="0" aria-label="Ver imagen ampliada" title="Ver imagen ampliada"></div>
+              <div class="cb-attachment-info">
+                <span class="cb-attachment-name" id="cb-attachment-name"></span>
+                <span class="cb-attachment-hint" id="cb-attachment-meta"></span>
+              </div>
+              <button class="cb-attachment-remove" id="cb-attachment-remove" aria-label="Quitar imagen adjunta" title="Quitar imagen">
+                ${ICONS.close}
+              </button>
+            </div>
+          </div>
+          <div class="cb-composer-row">
+            <button id="cb-attach-btn" class="cb-attach-btn" aria-label="Adjuntar imagen" title="Adjuntar imagen">
+              ${ICONS.attach}
+            </button>
+            <input type="file" id="cb-file-input" class="cb-file-input-hidden" accept="image/png,image/jpeg,image/webp,image/bmp,image/heic,image/heif" tabindex="-1" aria-hidden="true" />
+            <textarea
+              id="cb-input"
+              placeholder="${this._escapeAttr(this.config.bot.inputPlaceholder || `Pregúntale a ${this.config.bot.name}`)}"
+              rows="1"
+              maxlength="${this.config.behavior.maxMessageLength}"
+              aria-label="Escribe tu mensaje"
+              aria-multiline="true"
+            ></textarea>
+            <button id="cb-mic-btn" class="cb-mic-btn" aria-label="Grabar mensaje de voz" title="Grabar audio">
+              ${ICONS.mic}
+            </button>
+            <button id="cb-send-btn" aria-label="Enviar mensaje">
+              ${ICONS.send}
+            </button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -481,6 +533,7 @@ class ChatBubble {
       "cb-attachment-thumb",
     );
     this.attachmentName = this.shadowRoot.getElementById("cb-attachment-name");
+    this.attachmentMeta = this.shadowRoot.getElementById("cb-attachment-meta");
     this.attachmentRemoveBtn = this.shadowRoot.getElementById(
       "cb-attachment-remove",
     );
@@ -495,9 +548,7 @@ class ChatBubble {
     this.historyBtn = this.shadowRoot.getElementById("cb-history-btn");
     this.historyPanel = this.shadowRoot.getElementById("cb-history-panel");
     this.historyList = this.shadowRoot.getElementById("cb-history-list");
-    this.historyTitle = this.shadowRoot.getElementById(
-      "cb-history-panel-title",
-    );
+    this.headerBackBtn = this.shadowRoot.getElementById("cb-header-back-btn");
     this.historyFooter = this.shadowRoot.getElementById(
       "cb-history-panel-footer",
     );
@@ -516,8 +567,8 @@ class ChatBubble {
     );
 
     if (this.historyClearBtn) {
-      this.historyClearBtn.addEventListener("click", () =>
-        this._openClearAllModal(),
+      this.historyClearBtn.addEventListener("click", (e) =>
+        this._openClearAllModal(e.detail === 0),
       );
     }
     if (this.clearAllOverlay) {
@@ -682,7 +733,9 @@ class ChatBubble {
   _bindEvents() {
     this.launcherBtn.addEventListener("click", () => this._toggleChat());
 
-    this.sendBtn.addEventListener("click", () => this._handleSend());
+    this.sendBtn.addEventListener("click", () =>
+      this.isLoading ? this._stopResponse() : this._handleSend(),
+    );
 
     // Configurar dropdown de acciones del header
     if (this.actionsBtn) {
@@ -706,20 +759,24 @@ class ChatBubble {
     });
 
     if (this.historyBtn) {
-      this.historyBtn.addEventListener("click", () => {
+      // detail === 0 indica activación por teclado: solo entonces mover el foco
+      this.historyBtn.addEventListener("click", (e) => {
         this._closeActionsMenu();
-        this._toggleHistoryPanel();
+        this._toggleHistoryPanel(e.detail === 0);
       });
     }
 
-    const closeHistoryBtn = this.shadowRoot.getElementById(
-      "cb-history-panel-close",
-    );
-    if (closeHistoryBtn) {
-      closeHistoryBtn.addEventListener("click", () =>
-        this._closeHistoryPanel(),
-      );
-    }
+    this.headerBackBtn.addEventListener("click", () => {
+      this._closeHistoryPanel();
+      this.input.focus();
+    });
+
+    const historyNewBtn = this.shadowRoot.getElementById("cb-history-new-btn");
+    historyNewBtn.addEventListener("click", () => {
+      this._closeHistoryPanel();
+      this._startNewChat();
+      this.input.focus();
+    });
 
     const newSessionBtn = this.shadowRoot.getElementById("cb-new-session-btn");
     if (newSessionBtn) {
@@ -738,7 +795,9 @@ class ChatBubble {
 
     // Manejar clic en el micrófono
     if (this._audioSupported && this.micBtn) {
-      this.micBtn.addEventListener("click", () => this._handleMicClick());
+      this.micBtn.addEventListener("click", (e) =>
+        this._handleMicClick(e.detail === 0),
+      );
     } else if (this.micBtn) {
       this.micBtn.style.display = "none";
     }
@@ -767,6 +826,18 @@ class ChatBubble {
 
     // Cerrar chat o panel al presionar Escape
     document.addEventListener("keydown", (e) => {
+      if (this.isRecording && this.isOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          this._cancelRecording();
+          return;
+        }
+        if (e.key === "Enter" && !e.composedPath().some((el) => el.tagName === "BUTTON")) {
+          e.preventDefault();
+          this._stopRecording();
+          return;
+        }
+      }
       if (e.key === "Escape") {
         if (
           this.clearAllOverlay &&
@@ -1034,6 +1105,7 @@ class ChatBubble {
   _startNewChat() {
     if (this.activeRequest) this.activeRequest.abort();
     this.activeRequest = null;
+    this._hideThinkingIndicator();
     // Reiniciar estado de carga para desbloquear el input
     this._setLoadingState(false);
     this._clearReply();
@@ -1127,19 +1199,26 @@ class ChatBubble {
     bubbleRow.appendChild(content);
     col.appendChild(bubbleRow);
 
+    // Agrupar hora y acciones del mensaje en una sola fila bajo la burbuja
+    const meta = document.createElement("div");
+    meta.className = "cb-msg-meta";
+
     if (this.config.behavior.showTimestamps) {
       const time = document.createElement("span");
       time.className = "cb-message-time";
       time.textContent = this._getTimeString(dateObj);
-      col.appendChild(time);
+      meta.appendChild(time);
     }
 
-    message.appendChild(avatarEl);
-    message.appendChild(col);
+    const actions = document.createElement("div");
+    actions.className = "cb-msg-actions";
 
-    // Añadir botón para responder al mensaje
+    if (navigator.clipboard && window.isSecureContext) {
+      actions.appendChild(this._createCopyButton(content));
+    }
+
     const replyBtn = document.createElement("button");
-    replyBtn.className = "cb-message-reply-btn";
+    replyBtn.className = "cb-msg-action-btn";
     replyBtn.setAttribute("aria-label", "Responder a este mensaje");
     replyBtn.setAttribute("title", "Responder");
     replyBtn.innerHTML = ICONS.reply;
@@ -1148,7 +1227,13 @@ class ChatBubble {
       const plainText = content.textContent || content.innerText || "";
       this._setReply(plainText.trim());
     });
-    bubbleRow.appendChild(replyBtn);
+    actions.appendChild(replyBtn);
+
+    meta.appendChild(actions);
+    col.appendChild(meta);
+
+    message.appendChild(avatarEl);
+    message.appendChild(col);
 
     // Añadir mensaje al DOM
     this.messagesContainer.insertBefore(message, this.typingIndicator);
@@ -1258,6 +1343,8 @@ class ChatBubble {
       ) {
         active.node.parentNode.insertBefore(cursor, active.node.nextSibling);
       }
+      // Medir antes de crecer el texto para no arrastrar al usuario que subió a leer
+      const stickToBottom = this._isNearBottom();
       let count = 0;
       while (count < charsPerTick && charIndex < active.fullText.length) {
         active.node.nodeValue += active.fullText[charIndex];
@@ -1270,7 +1357,7 @@ class ChatBubble {
         charIndex = 0;
       }
 
-      this._scrollToBottom();
+      if (stickToBottom) this._scrollToBottom();
 
       this.activeTypingTimeout = setTimeout(streamText, msPerChar);
     };
@@ -1279,6 +1366,7 @@ class ChatBubble {
       if (isFinished) return;
       isFinished = true;
       clearTimeout(this.activeTypingTimeout);
+      const stickToBottom = this._isNearBottom();
 
       // Restaurar visibilidad de elementos de lista
       const hiddenItems = content.querySelectorAll(".cb-li-hidden");
@@ -1291,7 +1379,7 @@ class ChatBubble {
 
       cursor.remove();
       this.activeTyping = null;
-      this._scrollToBottom();
+      if (stickToBottom) this._scrollToBottom();
     };
 
     this.activeTyping = {
@@ -1301,6 +1389,38 @@ class ChatBubble {
     streamText();
 
     return message;
+  }
+
+  _createCopyButton(content) {
+    const btn = document.createElement("button");
+    btn.className = "cb-msg-action-btn";
+    btn.setAttribute("aria-label", "Copiar mensaje");
+    btn.setAttribute("title", "Copiar");
+    btn.innerHTML = ICONS.copy;
+
+    let resetTimer;
+    btn.addEventListener("click", async () => {
+      // Completar la animación de escritura para copiar el texto íntegro
+      if (this.activeTyping && content.querySelector(".cb-streaming-cursor")) {
+        this.activeTyping.complete();
+      }
+      try {
+        await navigator.clipboard.writeText(content.innerText.trim());
+      } catch {
+        this._showErrorToast("No se pudo copiar el mensaje.");
+        return;
+      }
+      clearTimeout(resetTimer);
+      btn.classList.add("cb-is-done");
+      btn.innerHTML = ICONS.check;
+      btn.setAttribute("aria-label", "Mensaje copiado");
+      resetTimer = setTimeout(() => {
+        btn.classList.remove("cb-is-done");
+        btn.innerHTML = ICONS.copy;
+        btn.setAttribute("aria-label", "Copiar mensaje");
+      }, 1600);
+    });
+    return btn;
   }
 
   // Insertar mensaje del usuario en el chat
@@ -1381,6 +1501,7 @@ class ChatBubble {
     }
 
     this._scrollToBottom();
+    return message;
   }
 
   // Activar modo de respuesta con cita
@@ -1420,8 +1541,46 @@ class ChatBubble {
     if (this.config.bot.welcomeMessage) {
       setTimeout(() => {
         this._addBotMessage(this.config.bot.welcomeMessage);
+        this._showSuggestions();
       }, 400);
+    } else {
+      this._showSuggestions();
     }
+  }
+
+  // Mostrar preguntas sugeridas mientras la conversación no tenga mensajes del usuario
+  _showSuggestions() {
+    const suggestions = (this.config.bot.suggestions || []).filter(
+      (s) => typeof s === "string" && s.trim(),
+    );
+    if (!suggestions.length) return;
+    if (this.chatHistory.some((m) => m.role === "user")) return;
+
+    this._hideSuggestions();
+    const list = document.createElement("div");
+    list.className = "cb-suggestions";
+    list.setAttribute("role", "group");
+    list.setAttribute("aria-label", "Preguntas sugeridas");
+
+    suggestions.forEach((text, i) => {
+      const chip = document.createElement("button");
+      chip.className = "cb-suggestion-chip";
+      chip.style.setProperty("--cb-chip-delay", `${i * 60}ms`);
+      chip.textContent = text;
+      chip.addEventListener("click", () => {
+        if (this.isLoading) return;
+        this.input.value = text;
+        this._handleSend();
+      });
+      list.appendChild(chip);
+    });
+
+    this.messagesContainer.insertBefore(list, this.typingIndicator);
+    this._scrollToBottom();
+  }
+
+  _hideSuggestions() {
+    this.messagesContainer.querySelector(".cb-suggestions")?.remove();
   }
 
   // Configurar el video en bucle que reemplaza la foto de perfil al hacer hover
@@ -1539,7 +1698,7 @@ class ChatBubble {
     }
     // Excluir el typing indicator (#cb-typing) para no perder la referencia del DOM
     const messages = this.messagesContainer.querySelectorAll(
-      ".cb-message:not(#cb-typing), .cb-date-divider, .cb-agent-intro",
+      ".cb-message:not(#cb-typing), .cb-date-divider, .cb-agent-intro, .cb-suggestions",
     );
     messages.forEach((el) => el.remove());
     this.lastMessageDateString = null;
@@ -1551,12 +1710,10 @@ class ChatBubble {
     const indicator = this.typingIndicator.querySelector(
       ".cb-typing-indicator",
     );
-    if (indicator) {
-      indicator.classList.remove("cb-thinking");
-      indicator.innerHTML = `
-        <span></span><span></span><span></span>
-      `;
-    }
+    indicator.classList.remove("cb-thinking");
+    indicator.innerHTML = `<span class="cb-typing-dot"></span><span class="cb-typing-dot"></span><span class="cb-typing-dot"></span><span class="cb-sr-only"></span>`;
+    indicator.querySelector(".cb-sr-only").textContent =
+      this.config.bot.typingText || "";
     this._scrollToBottom();
   }
 
@@ -1564,42 +1721,74 @@ class ChatBubble {
     this.typingIndicator.classList.remove("cb-visible");
   }
 
+  // Mostrar u actualizar el texto de estado; si ya está visible, solo cambiar el texto con transición
   _showThinkingIndicator(message) {
-    this._hideTypingIndicator();
-
     const typingEl = this.typingIndicator;
     typingEl.classList.add("cb-visible");
 
     const indicator = typingEl.querySelector(".cb-typing-indicator");
-    if (indicator) {
+    if (!indicator.classList.contains("cb-thinking")) {
       indicator.classList.add("cb-thinking");
-      indicator.innerHTML = `<span class="cb-thinking-text">${message}</span>`;
+      indicator.innerHTML = `<span class="cb-thinking-icon">${ICONS.sparkle}</span>`;
     }
+    indicator.querySelector(".cb-thinking-text")?.remove();
+    const text = document.createElement("span");
+    text.className = "cb-thinking-text";
+    text.textContent = message;
+    indicator.appendChild(text);
 
     this._scrollToBottom();
   }
 
   _hideThinkingIndicator() {
-    if (this.thinkingTimeout) {
-      clearTimeout(this.thinkingTimeout);
-      this.thinkingTimeout = null;
-    }
-
+    this._clearWaitingTimers();
     this.typingIndicator.classList.remove("cb-visible");
-
     const indicator = this.typingIndicator.querySelector(
       ".cb-typing-indicator",
     );
-    if (indicator) {
-      indicator.classList.remove("cb-thinking");
-      indicator.innerHTML = `
-        <span></span><span></span><span></span>
-      `;
-    }
+    indicator.classList.remove("cb-thinking");
+    indicator.innerHTML = "";
   }
 
-  _hideEmptyState() {}
-  _showEmptyState() {}
+  // Iniciar la espera: puntos (o un texto inicial) y luego etapas por tiempo transcurrido
+  _startWaiting(initialText = null) {
+    this._hideThinkingIndicator();
+    this._stopRequested = false;
+
+    const steps = (this.config.bot.thinkingSteps || []).filter(
+      (step) => step && step.text && step.after >= 0,
+    );
+    if (initialText) {
+      this._showThinkingIndicator(initialText);
+    } else {
+      this._showTypingIndicator();
+    }
+
+    // Con texto inicial (imagen/audio) omitir la primera etapa genérica, que lo repetiría
+    (initialText ? steps.slice(1) : steps).forEach((step) => {
+      this._waitTimers.push(
+        setTimeout(() => {
+          if (this.isLoading) this._showThinkingIndicator(step.text);
+        }, step.after),
+      );
+    });
+  }
+
+  _clearWaitingTimers() {
+    (this._waitTimers || []).forEach(clearTimeout);
+    this._waitTimers = [];
+  }
+
+  // Cancelar la petición en curso a pedido del usuario
+  _stopResponse() {
+    if (!this.isLoading || !this.activeRequest) return;
+    this._stopRequested = true;
+    this.activeRequest.abort();
+  }
+
+  _hideEmptyState() {
+    this._hideSuggestions();
+  }
 
   // Gestionar notificaciones visuales
   _showNotificationBadge() {
@@ -1693,24 +1882,18 @@ class ChatBubble {
       return;
     }
 
-    this._setLoadingState(true);
-
     // Insertar mensaje enviado en la interfaz
-    this._addUserMessage(text);
+    const messageEl = this._addUserMessage(text);
+    await this._requestBotReply(text, messageEl);
+  }
 
-    // Activar animación de respuesta pendiente
-    this._showTypingIndicator();
-
-    // Mostrar estado pensando tras espera prolongada
-    const THINKING_DELAY_MS = 3000;
-    const thinkingTimer = setTimeout(() => {
-      if (this.isLoading) {
-        this._showThinkingIndicator("Pensando...");
-      }
-    }, THINKING_DELAY_MS);
+  // Solicitar respuesta al webhook; si falla, marcar el mensaje para reintentar
+  async _requestBotReply(text, messageEl) {
+    this._setLoadingState(true);
 
     if (this.activeRequest) this.activeRequest.abort();
     this.activeRequest = new AbortController();
+    this._startWaiting();
 
     try {
       const response = await sendMessage(
@@ -1722,16 +1905,22 @@ class ChatBubble {
         this.activeRequest.signal,
         // Manejar eventos de progreso del webhook
         (intermediate) => {
-          if (intermediate && (intermediate.tool || intermediate.event)) {
-            clearTimeout(thinkingTimer);
-            this._showThinkingIndicator("Pensando...");
+          const indicator = this.typingIndicator.querySelector(
+            ".cb-typing-indicator",
+          );
+          if (
+            intermediate &&
+            (intermediate.tool || intermediate.event) &&
+            !indicator.classList.contains("cb-thinking")
+          ) {
+            this._showThinkingIndicator(
+              this.config.bot.thinkingSteps?.[0]?.text || "Pensando…",
+            );
           }
         },
       );
 
       // Procesar respuesta exitosa
-      clearTimeout(thinkingTimer);
-      this._hideTypingIndicator();
       this._hideThinkingIndicator();
 
       if (response && response.output) {
@@ -1750,31 +1939,63 @@ class ChatBubble {
         this._showErrorToast(
           "No se pudo obtener una respuesta válida. Inténtalo de nuevo.",
         );
+        this._markMessageFailed(messageEl, text);
       }
     } catch (error) {
-      clearTimeout(thinkingTimer);
-      if (error.name === "AbortError") return;
-      this._hideTypingIndicator();
+      if (error.name === "AbortError") {
+        if (this._stopRequested) {
+          this._hideThinkingIndicator();
+          this._markMessageFailed(messageEl, text, true);
+        }
+        return;
+      }
       this._hideThinkingIndicator();
       this._showErrorToast(error.message || this.config.bot.offlineMessage);
+      this._markMessageFailed(messageEl, text);
     } finally {
       this._setLoadingState(false);
       if (this.isOpen) this.input.focus();
     }
   }
 
+  _markMessageFailed(messageEl, text, stopped = false) {
+    if (!messageEl || !messageEl.isConnected) return;
+    messageEl.querySelector(".cb-msg-failed")?.remove();
+    if (!stopped) messageEl.classList.add("cb-message--failed");
+
+    const row = document.createElement("div");
+    row.className = stopped ? "cb-msg-failed cb-msg-failed--stopped" : "cb-msg-failed";
+
+    const label = document.createElement("span");
+    label.textContent = stopped ? "Respuesta detenida" : "No se pudo enviar";
+
+    const retryBtn = document.createElement("button");
+    retryBtn.className = "cb-msg-retry-btn";
+    retryBtn.innerHTML = `${ICONS.retry}<span>Reintentar</span>`;
+    retryBtn.addEventListener("click", () => {
+      if (this.isLoading) return;
+      row.remove();
+      messageEl.classList.remove("cb-message--failed");
+      this._requestBotReply(text, messageEl);
+    });
+
+    row.appendChild(label);
+    row.appendChild(retryBtn);
+    messageEl.appendChild(row);
+    this._scrollToBottom();
+  }
+
   // Actualizar estado general de la interfaz
   _setLoadingState(loading) {
     this.isLoading = loading;
-    this.input.disabled = loading;
-    this.sendBtn.disabled = loading;
     if (this.attachBtn) this.attachBtn.disabled = loading;
 
-    if (loading) {
-      this.sendBtn.setAttribute("aria-busy", "true");
-    } else {
-      this.sendBtn.removeAttribute("aria-busy");
-    }
+    this.sendBtn.classList.toggle("cb-is-stop", loading);
+    this.sendBtn.innerHTML = loading ? ICONS.stop : ICONS.send;
+    const label = loading ? "Detener respuesta" : "Enviar mensaje";
+    this.sendBtn.setAttribute("aria-label", label);
+    this.sendBtn.setAttribute("title", loading ? "Detener" : "");
+    this._updateSendButtonState();
   }
 
   // Ajustar altura de la caja de texto automáticamente
@@ -1787,6 +2008,11 @@ class ChatBubble {
 
   // Alternar visibilidad entre botón de envío y micrófono
   _updateSendButtonState() {
+    if (this.isLoading) {
+      this.sendBtn.classList.add("cb-visible");
+      if (this.micBtn) this.micBtn.classList.remove("cb-visible");
+      return;
+    }
     const hasText = this.input.value.trim().length > 0;
     const hasImage = !!this.pendingImage;
     if (hasText || hasImage) {
@@ -1805,6 +2031,11 @@ class ChatBubble {
     requestAnimationFrame(() => {
       this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
     });
+  }
+
+  _isNearBottom(threshold = 80) {
+    const c = this.messagesContainer;
+    return c.scrollHeight - c.clientHeight - c.scrollTop < threshold;
   }
 
   // Mostrar u ocultar botón de desplazamiento rápido
@@ -1896,41 +2127,30 @@ class ChatBubble {
   // Gestionar funciones de grabación de voz
 
   // Alternar estado de grabación activa
-  _handleMicClick() {
+  _handleMicClick(moveFocus = false) {
     if (this.isRecording) {
       this._stopRecording();
     } else {
-      this._startRecording();
+      this._startRecording(moveFocus);
     }
   }
 
   // Inicializar proceso y componentes de grabación
-  async _startRecording() {
+  async _startRecording(moveFocus = false) {
     if (this.isLoading) return;
 
     this.audioRecorder = new AudioRecorder();
 
     // Desplegar interfaz de controles de grabación
-    this._showRecordingUI();
+    this._showRecordingUI(moveFocus);
 
-    // Animar visualizador de onda sonora
+    // Desplazar la onda: cada lectura de nivel entra por la derecha
     this.audioRecorder.onLevelChange = (level) => {
-      if (this._recordingBars) {
-        this._recordingBars.forEach((bar, i) => {
-          const height = Math.max(
-            4,
-            Math.round(level * 20 + Math.random() * 8),
-          );
-          bar.style.height = `${height}px`;
-        });
-      }
+      this._pushRecordingLevel(level);
     };
 
-    // Actualizar cronómetro de grabación
     this.audioRecorder.onTick = (seconds) => {
-      if (this._recordingTimer) {
-        this._recordingTimer.textContent = formatDuration(seconds);
-      }
+      this._updateRecordingTime(seconds);
     };
 
     // Procesar archivo al finalizar la grabación
@@ -1953,6 +2173,8 @@ class ChatBubble {
 
     this.isRecording = true;
     if (this.micBtn) this.micBtn.classList.remove("cb-visible");
+    this._recordingOverlay?.classList.add("cb-is-live");
+    this._announceRecording("Grabando audio");
   }
 
   // Finalizar grabación y disparar procesamiento
@@ -1974,70 +2196,108 @@ class ChatBubble {
   }
 
   // Mostrar la UI de grabación sobre el área de input
-  _showRecordingUI() {
+  _showRecordingUI(moveFocus = false) {
     // Esconder controles estándar del área de texto
     this.input.style.visibility = "hidden";
     if (this.micBtn) this.micBtn.style.visibility = "hidden";
     if (this.attachBtn) this.attachBtn.disabled = true;
+    if (this._recordingOverlay) return;
 
-    // Inicializar capa superpuesta de controles de grabación
-    if (!this._recordingOverlay) {
-      const overlay = document.createElement("div");
-      overlay.className = "cb-recording-ui";
-      overlay.id = "cb-recording-ui";
+    const overlay = document.createElement("div");
+    overlay.className = "cb-recording-ui";
+    overlay.id = "cb-recording-ui";
+    overlay.style.setProperty("--cb-rec-max", `${MAX_RECORDING_SECONDS}s`);
 
-      // Configurar punto animado de estado de grabación
-      const dot = document.createElement("span");
-      dot.className = "cb-recording-dot";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "cb-recording-cancel";
+    cancelBtn.setAttribute("aria-label", "Descartar grabación");
+    cancelBtn.title = "Descartar (Esc)";
+    cancelBtn.innerHTML = ICONS.trash;
+    cancelBtn.addEventListener("click", () => this._cancelRecording());
 
-      // Configurar cronómetro visible de grabación
-      const timer = document.createElement("span");
-      timer.className = "cb-recording-timer";
-      timer.textContent = "00:00";
-      this._recordingTimer = timer;
+    const status = document.createElement("div");
+    status.className = "cb-recording-status";
+    status.innerHTML = `<span class="cb-recording-dot" aria-hidden="true"></span>`;
+    const timer = document.createElement("span");
+    timer.className = "cb-recording-timer";
+    timer.textContent = this._formatClock(0);
+    status.appendChild(timer);
+    this._recordingTimer = timer;
 
-      // Configurar contenedor de animación de espectro
-      const wave = document.createElement("div");
-      wave.className = "cb-recording-wave";
-      this._recordingBars = [];
-      for (let i = 0; i < 10; i++) {
-        const bar = document.createElement("span");
-        bar.className = "cb-recording-bar";
-        wave.appendChild(bar);
-        this._recordingBars.push(bar);
-      }
-
-      // Configurar botón para descartar nota de voz
-      const cancelBtn = document.createElement("button");
-      cancelBtn.className = "cb-recording-cancel";
-      cancelBtn.setAttribute("aria-label", "Cancelar grabación");
-      cancelBtn.title = "Cancelar";
-      cancelBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>`;
-      cancelBtn.addEventListener("click", () => this._cancelRecording());
-
-      // Configurar botón para confirmar envío de nota de voz
-      const sendBtn = document.createElement("button");
-      sendBtn.className = "cb-recording-send";
-      sendBtn.setAttribute("aria-label", "Enviar audio");
-      sendBtn.title = "Enviar audio";
-      sendBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405Z"/></svg>`;
-      sendBtn.addEventListener("click", () => this._stopRecording());
-
-      overlay.appendChild(dot);
-      overlay.appendChild(timer);
-      overlay.appendChild(wave);
-      overlay.appendChild(cancelBtn);
-      overlay.appendChild(sendBtn);
-
-      // Adjuntar capa superpuesta al área de entrada
-      const inputArea =
-        this.input.closest(".cb-input-area") || this.input.parentElement;
-      inputArea.appendChild(overlay);
-      this._recordingOverlay = overlay;
-
-      // Asegurar ejecución de animación CSS
-      requestAnimationFrame(() => overlay.classList.add("cb-visible"));
+    // Onda desplazable: barras de altura fija escaladas según el nivel
+    const wave = document.createElement("div");
+    wave.className = "cb-recording-wave";
+    wave.setAttribute("aria-hidden", "true");
+    this._recordingBars = [];
+    this._recordingLevels = [];
+    for (let i = 0; i < 48; i++) {
+      const bar = document.createElement("span");
+      bar.className = "cb-recording-bar";
+      wave.appendChild(bar);
+      this._recordingBars.push(bar);
+      this._recordingLevels.push(0);
     }
+
+    // Botón enviar con anillo que se completa al llegar al límite de duración
+    const sendBtn = document.createElement("button");
+    sendBtn.className = "cb-recording-send";
+    sendBtn.setAttribute("aria-label", "Enviar audio");
+    sendBtn.title = "Enviar (Enter)";
+    sendBtn.innerHTML = `
+      <svg class="cb-recording-ring" viewBox="0 0 40 40" aria-hidden="true">
+        <circle class="cb-recording-ring-track" cx="20" cy="20" r="18.5"></circle>
+        <circle class="cb-recording-ring-fill" cx="20" cy="20" r="18.5" pathLength="100"></circle>
+      </svg>
+      ${ICONS.send}`;
+    sendBtn.addEventListener("click", () => this._stopRecording());
+    this._recordingSendBtn = sendBtn;
+
+    // Región para anunciar cambios de estado una sola vez
+    const live = document.createElement("span");
+    live.className = "cb-sr-only";
+    live.setAttribute("aria-live", "polite");
+    this._recordingLive = live;
+
+    overlay.append(cancelBtn, status, wave, sendBtn, live);
+    const composer =
+      this.input.closest(".cb-composer") || this.input.parentElement;
+    composer.appendChild(overlay);
+    this._recordingOverlay = overlay;
+
+    requestAnimationFrame(() => overlay.classList.add("cb-visible"));
+    if (moveFocus) sendBtn.focus({ preventScroll: true });
+  }
+
+  _formatClock(seconds) {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  }
+
+  _pushRecordingLevel(level) {
+    if (!this._recordingBars) return;
+    // Amplificar: el promedio espectral de la voz suele quedar bajo 0.3
+    const value = Math.min(1, Math.pow(level * 3.2, 0.85));
+    this._recordingLevels.shift();
+    this._recordingLevels.push(value);
+    this._recordingBars.forEach((bar, i) => {
+      const v = this._recordingLevels[i];
+      bar.style.transform = `scaleY(${Math.max(0.12, v)})`;
+      bar.classList.toggle("cb-is-on", v > 0);
+    });
+  }
+
+  _updateRecordingTime(seconds) {
+    if (!this._recordingTimer) return;
+    this._recordingTimer.textContent = this._formatClock(seconds);
+    const remaining = MAX_RECORDING_SECONDS - seconds;
+    const ending = remaining <= 5;
+    if (ending && !this._recordingOverlay.classList.contains("cb-is-ending")) {
+      this._recordingOverlay.classList.add("cb-is-ending");
+      this._announceRecording(`Quedan ${remaining} segundos`);
+    }
+  }
+
+  _announceRecording(text) {
+    if (this._recordingLive) this._recordingLive.textContent = text;
   }
 
   // Destruir controles de grabación y restaurar interfaz
@@ -2052,6 +2312,30 @@ class ChatBubble {
       this._recordingOverlay = null;
       this._recordingTimer = null;
       this._recordingBars = null;
+      this._recordingLevels = null;
+      this._recordingSendBtn = null;
+      this._recordingLive = null;
+    }
+  }
+
+  // Calcular picos reales del audio para dibujar la onda del reproductor
+  async _getWaveformPeaks(blob, count) {
+    try {
+      const buffer = await blob.arrayBuffer();
+      const ctx = new OfflineAudioContext(1, 1, 44100);
+      const audio = await ctx.decodeAudioData(buffer);
+      const data = audio.getChannelData(0);
+      const size = Math.floor(data.length / count) || 1;
+      const peaks = [];
+      for (let i = 0; i < count; i++) {
+        let sum = 0;
+        for (let j = 0; j < size; j++) sum += Math.abs(data[i * size + j] || 0);
+        peaks.push(sum / size);
+      }
+      const max = Math.max(...peaks) || 1;
+      return peaks.map((p) => p / max);
+    } catch {
+      return null;
     }
   }
 
@@ -2081,18 +2365,125 @@ class ChatBubble {
     playBtn.setAttribute("aria-label", "Reproducir audio");
     playBtn.innerHTML = ICONS.audioPlay;
 
-    // Configurar línea de tiempo interactiva
-    const progressWrapper = document.createElement("div");
-    progressWrapper.className = "cb-audio-progress-wrapper";
+    // Construir onda en dos capas: base tenue y capa reproducida recortada según el avance
+    const WAVE_BARS = 30;
+    const wave = document.createElement("div");
+    wave.className = "cb-audio-wave";
+    wave.tabIndex = 0;
+    wave.setAttribute("role", "slider");
+    wave.setAttribute("aria-label", "Posición del audio");
+    wave.setAttribute("aria-valuemin", "0");
+    wave.setAttribute("aria-valuemax", String(Math.round(duration)));
+    wave.setAttribute("aria-valuenow", "0");
 
-    const progressBar = document.createElement("div");
-    progressBar.className = "cb-audio-progress-bar";
-    progressWrapper.appendChild(progressBar);
+    const baseLayer = document.createElement("div");
+    baseLayer.className = "cb-audio-wave-layer";
+    const playedLayer = document.createElement("div");
+    playedLayer.className = "cb-audio-wave-layer cb-audio-wave-layer--played";
+    playedLayer.setAttribute("aria-hidden", "true");
+    const knob = document.createElement("span");
+    knob.className = "cb-audio-knob";
+    knob.setAttribute("aria-hidden", "true");
 
-    // Mostrar tiempo total o restante
-    const durationEl = document.createElement("span");
-    durationEl.className = "cb-audio-duration";
-    durationEl.textContent = formatDuration(duration);
+    const bars = [];
+    for (let i = 0; i < WAVE_BARS; i++) {
+      // Altura provisional hasta decodificar el audio
+      const h = (0.3 + 0.25 * Math.abs(Math.sin(i * 1.7))).toFixed(2);
+      for (const layer of [baseLayer, playedLayer]) {
+        const bar = document.createElement("span");
+        bar.className = "cb-audio-wave-bar";
+        bar.style.setProperty("--h", h);
+        layer.appendChild(bar);
+        bars.push(bar);
+      }
+    }
+    wave.append(baseLayer, playedLayer, knob);
+
+    this._getWaveformPeaks(blob, WAVE_BARS).then((peaks) => {
+      if (!peaks) return;
+      // Escala perceptual para que los tramos suaves no queden planos
+      peaks.forEach((p, i) => {
+        const h = Math.max(0.18, Math.sqrt(p)).toFixed(2);
+        bars[i * 2].style.setProperty("--h", h);
+        bars[i * 2 + 1].style.setProperty("--h", h);
+      });
+    });
+
+    const getTotal = () => (isFinite(audio.duration) ? audio.duration : duration);
+    const render = () => {
+      const total = getTotal();
+      const pct = total ? Math.min(100, (audio.currentTime / total) * 100) : 0;
+      wave.style.setProperty("--p", `${pct}%`);
+      wave.setAttribute("aria-valuenow", String(Math.floor(audio.currentTime)));
+      wave.setAttribute(
+        "aria-valuetext",
+        `${this._formatClock(Math.floor(audio.currentTime))} de ${this._formatClock(Math.round(total))}`,
+      );
+    };
+
+    // Animar el avance a 60 fps mientras suena; timeupdate solo llega ~4 veces por segundo
+    let rafId = null;
+    const loop = () => {
+      render();
+      rafId = requestAnimationFrame(loop);
+    };
+
+    const seekTo = (seconds) => {
+      const total = getTotal();
+      audio.currentTime = Math.max(0, Math.min(total, seconds));
+      wave.classList.add("cb-is-started");
+      render();
+    };
+
+    // Arrastrar o hacer clic sobre la onda para buscar
+    const seekFromPointer = (e) => {
+      const rect = wave.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      seekTo(ratio * getTotal());
+    };
+    wave.addEventListener("pointerdown", (e) => {
+      wave.setPointerCapture(e.pointerId);
+      wave.classList.add("cb-is-seeking");
+      seekFromPointer(e);
+    });
+    wave.addEventListener("pointermove", (e) => {
+      if (wave.hasPointerCapture(e.pointerId)) seekFromPointer(e);
+    });
+    const endSeek = () => wave.classList.remove("cb-is-seeking");
+    wave.addEventListener("pointerup", endSeek);
+    wave.addEventListener("pointercancel", endSeek);
+
+    wave.addEventListener("keydown", (e) => {
+      const step = { ArrowRight: 2, ArrowUp: 2, ArrowLeft: -2, ArrowDown: -2 }[e.key];
+      if (step) {
+        e.preventDefault();
+        seekTo(audio.currentTime + step);
+      } else if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        seekTo(e.key === "Home" ? 0 : getTotal());
+      } else if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        playBtn.click();
+      }
+    });
+
+    // Control de velocidad a la derecha de la onda
+    const RATES = [1, 1.5, 2];
+    let rateIndex = 0;
+    const speedBtn = document.createElement("button");
+    speedBtn.className = "cb-audio-speed";
+    const updateSpeed = () => {
+      const rate = RATES[rateIndex];
+      speedBtn.textContent = `${rate}×`;
+      speedBtn.setAttribute("aria-label", `Velocidad de reproducción ${rate}x`);
+      audio.playbackRate = rate;
+    };
+    updateSpeed();
+    speedBtn.addEventListener("click", () => {
+      rateIndex = (rateIndex + 1) % RATES.length;
+      updateSpeed();
+    });
+
 
     // Sincronizar estado del reproductor con interfaz visual
     let isPlaying = false;
@@ -2105,58 +2496,44 @@ class ChatBubble {
       }
     });
 
+    const setPlaying = (playing) => {
+      isPlaying = playing;
+      content.classList.toggle("cb-is-playing", playing);
+      playBtn.innerHTML = playing ? ICONS.audioPause : ICONS.audioPlay;
+      playBtn.setAttribute(
+        "aria-label",
+        playing ? "Pausar audio" : "Reproducir audio",
+      );
+      cancelAnimationFrame(rafId);
+      if (playing) loop();
+    };
+
     audio.addEventListener("play", () => {
       // Pausar cualquier otro audio de la conversación antes de reproducir este
       if (this._activeAudio && this._activeAudio !== audio) {
         this._activeAudio.pause();
       }
       this._activeAudio = audio;
-
-      isPlaying = true;
-      playBtn.innerHTML = ICONS.audioPause;
-      playBtn.setAttribute("aria-label", "Pausar audio");
+      audio.playbackRate = RATES[rateIndex];
+      wave.classList.add("cb-is-started");
+      setPlaying(true);
     });
 
     audio.addEventListener("pause", () => {
       if (this._activeAudio === audio) this._activeAudio = null;
-
-      isPlaying = false;
-      playBtn.innerHTML = ICONS.audioPlay;
-      playBtn.setAttribute("aria-label", "Reproducir audio");
+      setPlaying(false);
+      render();
     });
 
     audio.addEventListener("ended", () => {
       if (this._activeAudio === audio) this._activeAudio = null;
-
-      isPlaying = false;
-      playBtn.innerHTML = ICONS.audioPlay;
-      playBtn.setAttribute("aria-label", "Reproducir audio");
-      progressBar.style.width = "0%";
-      durationEl.textContent = formatDuration(duration);
+      setPlaying(false);
+      audio.currentTime = 0;
+      wave.classList.remove("cb-is-started");
+      wave.style.setProperty("--p", "0%");
     });
 
-    audio.addEventListener("timeupdate", () => {
-      // El contenedor webm/opus de MediaRecorder no trae metadata de duración:
-      // audio.duration reporta Infinity en los primeros ticks. Usar la duración
-      // grabada como respaldo mientras el navegador la calcula.
-      const total = isFinite(audio.duration) ? audio.duration : duration;
-      const pct = total ? (audio.currentTime / total) * 100 : 0;
-      progressBar.style.width = `${pct}%`;
-      const remaining = Math.max(0, Math.floor(total - audio.currentTime));
-      durationEl.textContent = formatDuration(remaining);
-    });
-
-    // Manejar navegación por la barra de progreso
-    progressWrapper.addEventListener("click", (e) => {
-      if (!audio.duration) return;
-      const rect = progressWrapper.getBoundingClientRect();
-      const pct = (e.clientX - rect.left) / rect.width;
-      audio.currentTime = pct * audio.duration;
-    });
-
-    content.appendChild(playBtn);
-    content.appendChild(progressWrapper);
-    content.appendChild(durationEl);
+    content.append(playBtn, wave, speedBtn);
     message.appendChild(content);
 
     if (this.config.behavior.showTimestamps) {
@@ -2198,8 +2575,8 @@ class ChatBubble {
     if (this.activeRequest) this.activeRequest.abort();
     this.activeRequest = new AbortController();
 
-    this._showThinkingIndicator("Escuchando...");
     this._setLoadingState(true);
+    this._startWaiting("Escuchando…");
 
     try {
       const result = await sendAudioMessage(
@@ -2225,7 +2602,10 @@ class ChatBubble {
 
       this._addBotMessage(result.output || "");
     } catch (error) {
-      if (error.name === "AbortError") return;
+      if (error.name === "AbortError") {
+        if (this._stopRequested) this._hideThinkingIndicator();
+        return;
+      }
       this._hideThinkingIndicator();
       this._showErrorToast(
         error.message || "Error al procesar el audio. Inténtalo de nuevo.",
@@ -2273,8 +2653,27 @@ class ChatBubble {
   // Configurar arrastrar y soltar una imagen sobre la ventana del chat
   _initDropZone() {
     let dragCounter = 0;
+    let internalDrag = false;
 
+    // Bloquear el arrastre de avatares y marcar arrastres originados dentro del widget
+    this.shadowRoot.addEventListener("dragstart", (e) => {
+      if (
+        e.target.closest?.(
+          ".cb-avatar, .cb-msg-avatar, .cb-agent-intro-avatar, .cb-launcher-btn",
+        )
+      ) {
+        e.preventDefault();
+        return;
+      }
+      internalDrag = true;
+    });
+    this.shadowRoot.addEventListener("dragend", () => {
+      internalDrag = false;
+    });
+
+    // Aceptar solo archivos traídos desde fuera, no imágenes del propio chat
     const isFileDrag = (e) =>
+      !internalDrag &&
       e.dataTransfer &&
       Array.from(e.dataTransfer.types || []).includes("Files");
 
@@ -2365,11 +2764,20 @@ class ChatBubble {
 
     this.attachmentThumb.style.backgroundImage = `url("${url}")`;
     this.attachmentName.textContent = file.name || "Imagen";
+    this.attachmentName.title = file.name || "";
+    const type = (file.type.split("/")[1] || "imagen").replace("jpeg", "jpg");
+    this.attachmentMeta.textContent = `${type.toUpperCase()} · ${this._formatFileSize(file.size)}`;
     this.attachmentPreview.classList.add("cb-visible");
     this.attachmentPreview.setAttribute("aria-hidden", "false");
   }
 
   // Descartar la imagen adjunta pendiente de envío
+  _formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
+  }
+
   _clearPendingImage() {
     this.pendingImage = null;
     if (this._attachmentPreviewUrl) {
@@ -2461,8 +2869,8 @@ class ChatBubble {
     if (this.activeRequest) this.activeRequest.abort();
     this.activeRequest = new AbortController();
 
-    this._showThinkingIndicator("Analizando imagen...");
     this._setLoadingState(true);
+    this._startWaiting("Analizando imagen…");
 
     try {
       const result = await sendImageMessage(
@@ -2482,7 +2890,10 @@ class ChatBubble {
 
       this._addBotMessage(result.output || "");
     } catch (error) {
-      if (error.name === "AbortError") return;
+      if (error.name === "AbortError") {
+        if (this._stopRequested) this._hideThinkingIndicator();
+        return;
+      }
       this._hideThinkingIndicator();
       this._showErrorToast(
         error.message || "Error al procesar la imagen. Inténtalo de nuevo.",
@@ -2547,16 +2958,16 @@ class ChatBubble {
   }
 
   // Alternar visibilidad del panel de historial
-  _toggleHistoryPanel() {
+  _toggleHistoryPanel(moveFocus = false) {
     if (this.historyPanel.classList.contains("cb-is-active")) {
       this._closeHistoryPanel();
     } else {
-      this._openHistoryPanel();
+      this._openHistoryPanel(moveFocus);
     }
   }
 
   // Abrir panel de historial con transición
-  _openHistoryPanel() {
+  _openHistoryPanel(moveFocus = false) {
     // Usar offsetTop para que sea inmune al movimiento de la ventana; el panel
     // ocupa hasta el borde inferior porque el input de mensajes queda oculto
     const top = this.messagesContainer.offsetTop;
@@ -2566,11 +2977,20 @@ class ChatBubble {
 
     this._renderHistoryPanel();
 
+    // Animar la entrada solo al abrir, no en cada re-render tras eliminar
+    clearTimeout(this._historyEnterTimer);
+    this.historyList.classList.add("cb-is-entering");
+    this._historyEnterTimer = setTimeout(
+      () => this.historyList.classList.remove("cb-is-entering"),
+      600,
+    );
+
     this.historyPanel.classList.add("cb-is-active");
     this.historyPanel.setAttribute("aria-hidden", "false");
     this.messagesContainer.classList.add("cb-history-active");
     this.window.classList.add("cb-history-open");
     if (this.actionsBtn) this.actionsBtn.classList.add("cb-is-active");
+    if (moveFocus) this.headerBackBtn.focus({ preventScroll: true });
 
     if (this.scrollBottomBtn) {
       this.scrollBottomBtn.classList.remove("cb-visible");
@@ -2591,40 +3011,24 @@ class ChatBubble {
 
   // Renderizar la lista de sesiones guardadas agrupadas por fecha
   _renderHistoryPanel() {
-    const allSessions = getSessionsIndex();
-    const activeSession = allSessions.find(
-      (s) => s.sessionId === this.sessionId,
+    const sessions = getSessionsIndex();
+    const hasOtherSessions = sessions.some(
+      (s) => s.sessionId !== this.sessionId,
     );
-    // Separar la sesión activa: se muestra fija arriba, no agrupada por fecha
-    const sessions = allSessions.filter((s) => s.sessionId !== this.sessionId);
-
-    if (this.historyTitle) {
-      this.historyTitle.textContent = sessions.length
-        ? `Conversaciones · ${sessions.length}`
-        : "Conversaciones";
-    }
 
     this.historyList.innerHTML = "";
-
-    if (activeSession) {
-      this.historyList.appendChild(this._buildHistoryItem(activeSession, true));
-    }
+    this.historyFooter?.classList.toggle("cb-is-hidden", !hasOtherSessions);
 
     if (sessions.length === 0) {
       const empty = document.createElement("div");
       empty.className = "cb-history-empty";
       empty.innerHTML = `
         <div class="cb-history-empty-icon">${ICONS.chatEmpty}</div>
-        <p class="cb-history-empty-title">Sin conversaciones anteriores</p>
-        <p class="cb-history-empty-sub">Tus chats pasados aparecerán aquí</p>
+        <p class="cb-history-empty-title">Aún no tienes conversaciones</p>
+        <p class="cb-history-empty-sub">Tus chats aparecerán aquí</p>
       `;
       this.historyList.appendChild(empty);
-      if (this.historyFooter) this.historyFooter.classList.add("cb-is-hidden");
       return;
-    }
-
-    if (this.historyFooter) {
-      this.historyFooter.classList.remove("cb-is-hidden");
     }
 
     // Agrupar por fecha
@@ -2642,8 +3046,8 @@ class ChatBubble {
     const groups = [
       { label: "Hoy", items: [] },
       { label: "Ayer", items: [] },
-      { label: "Esta semana", items: [] },
-      { label: "Más antiguas", items: [] },
+      { label: "Últimos 7 días", items: [] },
+      { label: "Anteriores", items: [] },
     ];
 
     sessions.forEach((session) => {
@@ -2655,18 +3059,79 @@ class ChatBubble {
       else groups[3].items.push(session);
     });
 
+    let index = 0;
     groups.forEach((group) => {
       if (group.items.length === 0) return;
 
+      const section = document.createElement("div");
+      section.className = "cb-history-group";
+      section.setAttribute("role", "group");
+
       const label = document.createElement("div");
       label.className = "cb-history-group-label";
+      label.id = `cb-history-group-${group.label.replace(/\s+/g, "-")}`;
       label.textContent = group.label;
-      this.historyList.appendChild(label);
+      section.setAttribute("aria-labelledby", label.id);
+      section.appendChild(label);
 
       group.items.forEach((session) => {
-        this.historyList.appendChild(this._buildHistoryItem(session));
+        const item = this._buildHistoryItem(
+          session,
+          session.sessionId === this.sessionId,
+        );
+        item.style.setProperty("--cb-item-delay", `${Math.min(index, 8) * 30}ms`);
+        index++;
+        section.appendChild(item);
       });
+
+      this.historyList.appendChild(section);
     });
+  }
+
+  // Convertir el último mensaje del bot en una vista previa de una línea, sin markdown ni emojis
+  _getHistoryPreview(sessionId) {
+    const history = getHistoryBySessionId(sessionId);
+    const lastBotMsg = [...history].reverse().find((m) => m.role === "bot");
+    if (!lastBotMsg || !lastBotMsg.text) return "";
+    return lastBotMsg.text
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, "")
+      .replace(/^\s*#{1,6}\s+/gm, "")
+      .replace(/[*_~`>|]/g, "")
+      .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
+  }
+
+  // Formatear la hora del ítem de forma compacta según su antigüedad
+  _formatHistoryTime(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const diffDays = Math.floor(
+      (startOfToday - new Date(date.getFullYear(), date.getMonth(), date.getDate())) /
+        86400000,
+    );
+
+    if (diffDays <= 0) return this._getTimeString(date);
+    if (diffDays === 1) return "Ayer";
+    if (diffDays < 7) {
+      const weekday = date.toLocaleDateString("es", { weekday: "short" });
+      return weekday.charAt(0).toUpperCase() + weekday.slice(1).replace(".", "");
+    }
+    return date
+      .toLocaleDateString("es", {
+        day: "numeric",
+        month: "short",
+        ...(date.getFullYear() !== now.getFullYear() && { year: "numeric" }),
+      })
+      .replace(".", "");
   }
 
   // Construir un ítem de historial individual
@@ -2677,61 +3142,52 @@ class ChatBubble {
       : "cb-history-item";
     item.setAttribute("role", "button");
     item.setAttribute("tabindex", isActive ? "-1" : "0");
-    if (isActive) item.setAttribute("aria-disabled", "true");
+    if (isActive) {
+      item.setAttribute("aria-current", "true");
+      item.setAttribute("aria-disabled", "true");
+    }
     item.dataset.sessionId = session.sessionId;
 
-    // Generar vista previa con el último mensaje del bot, sin markdown
-    const sessionHistory = getHistoryBySessionId(session.sessionId);
-    const lastBotMsg = [...sessionHistory]
-      .reverse()
-      .find((m) => m.role === "bot");
-    const previewText = lastBotMsg
-      ? lastBotMsg.text
-          .replace(/[*_~`#>|[\]!]/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 200)
-      : "";
-
+    const dateStr = session.lastUserMessageAt || session.lastMessageAt;
+    const previewText = this._getHistoryPreview(session.sessionId);
     const countText =
       session.messageCount === 1
         ? "1 mensaje"
         : `${session.messageCount} mensajes`;
+    const tooltip = `${this._formatRelativeDate(dateStr)} · ${countText}`;
 
     item.innerHTML = `
       <div class="cb-history-item-content">
         <div class="cb-history-item-title-row">
-          <div class="cb-history-item-title" title="${this._escapeAttr(session.title)}">${this._escapeAttr(session.title)}</div>
-          ${isActive ? '<span class="cb-history-item-badge">Actual</span>' : ""}
+          <span class="cb-history-item-title">${this._escapeAttr(session.title)}</span>
+          <time class="cb-history-item-time" datetime="${this._escapeAttr(dateStr)}" title="${this._escapeAttr(tooltip)}">${this._escapeAttr(this._formatHistoryTime(dateStr))}</time>
+          ${
+            isActive
+              ? ""
+              : `<button class="cb-history-item-delete" aria-label="Eliminar conversación" title="Eliminar conversación">${ICONS.trash}</button>`
+          }
         </div>
         ${previewText ? `<div class="cb-history-item-preview">${this._escapeAttr(previewText)}</div>` : ""}
-        <div class="cb-history-item-meta">
-          <span class="cb-history-item-date">${this._formatRelativeDate(session.lastUserMessageAt || session.lastMessageAt)}</span>
-          <span class="cb-history-item-dot">·</span>
-          <span class="cb-history-item-count">${countText}</span>
-        </div>
       </div>
-      ${
-        isActive
-          ? ""
-          : `<button class="cb-history-item-delete" aria-label="Eliminar conversación" title="Eliminar conversación">
-        ${ICONS.trash}
-      </button>`
-      }
     `;
+    item.setAttribute(
+      "aria-label",
+      `${session.title}${isActive ? " (conversación actual)" : ""}, ${tooltip}`,
+    );
 
     if (isActive) return item;
 
     item.addEventListener("click", (e) => {
       if (e.target.closest(".cb-history-item-delete")) {
         e.stopPropagation();
-        this._confirmDeleteSession(session.sessionId, item);
+        this._confirmDeleteSession(session.sessionId, item, e.detail === 0);
       } else if (!item.classList.contains("cb-history-item--confirming")) {
         this._loadSession(session.sessionId);
       }
     });
 
     item.addEventListener("keydown", (e) => {
+      if (e.target !== item) return;
       if (
         (e.key === "Enter" || e.key === " ") &&
         !item.classList.contains("cb-history-item--confirming")
@@ -2751,7 +3207,7 @@ class ChatBubble {
   }
 
   // Mostrar confirmación inline antes de eliminar
-  _confirmDeleteSession(sessionId, item) {
+  _confirmDeleteSession(sessionId, item, moveFocus = false) {
     if (item.classList.contains("cb-history-item--confirming")) return;
     item.classList.add("cb-history-item--confirming");
 
@@ -2781,10 +3237,12 @@ class ChatBubble {
         this._cancelDeleteSession(item);
       });
 
-    setTimeout(
-      () => confirmEl.querySelector(".cb-history-item-confirm-no").focus(),
-      0,
-    );
+    if (moveFocus) {
+      setTimeout(
+        () => confirmEl.querySelector(".cb-history-item-confirm-no").focus(),
+        0,
+      );
+    }
   }
 
   // Cancelar confirmación de borrado
@@ -2849,15 +3307,22 @@ class ChatBubble {
   }
 
   // Mostrar el modal de confirmación de borrado total sobre el chat
-  _openClearAllModal() {
+  _openClearAllModal(fromKeyboard = false) {
     if (!this.clearAllOverlay) return;
+    const count = getSessionsIndex().filter(
+      (s) => s.sessionId !== this.sessionId,
+    ).length;
+    this.shadowRoot.getElementById("cb-clear-all-desc").textContent =
+      `Se eliminará${count === 1 ? " 1 conversación" : `n ${count} conversaciones guardadas`}. La conversación actual se conserva.`;
     this.clearAllOverlay.classList.remove("cb-is-hidden");
     this.clearAllOverlay.setAttribute("aria-hidden", "false");
     // Forzar reflow para que la transición de entrada se anime
     void this.clearAllOverlay.offsetWidth;
     this.clearAllOverlay.classList.add("cb-is-active");
+    // Llevar el foco al diálogo; al botón solo con teclado para no mostrar el anillo tras un clic
     setTimeout(
-      () => this.clearAllCancelBtn && this.clearAllCancelBtn.focus(),
+      () =>
+        (fromKeyboard ? this.clearAllCancelBtn : this.clearAllDialog)?.focus(),
       0,
     );
   }
@@ -2889,7 +3354,9 @@ class ChatBubble {
       (s) => s.sessionId !== this.sessionId,
     );
     const items = Array.from(
-      this.historyList.querySelectorAll(".cb-history-item"),
+      this.historyList.querySelectorAll(
+        ".cb-history-item:not(.cb-history-item--active)",
+      ),
     );
 
     // Ocultar footer inmediatamente para evitar doble render

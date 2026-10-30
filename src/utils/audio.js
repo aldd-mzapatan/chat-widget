@@ -1,6 +1,6 @@
 // Grabar audio desde el navegador
 
-const MAX_RECORDING_SECONDS = 30;
+export const MAX_RECORDING_SECONDS = 30;
 
 /*
   Encapsular grabación de audio con MediaRecorder.
