@@ -19,3 +19,6 @@ npm-debug.log*
 
 # IMPORTANTE: dist/ NO está en .gitignore porque los archivos
 # compilados deben subirse a GitHub para que jsDelivr pueda servirlos
+
+# Ignorar la carpeta backend
+backend/
